@@ -1,0 +1,21 @@
+#!/bin/sh -m
+
+#-
+# Copyright (C) 2011  Oy L M Ericsson Ab, NomadicLab
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+#
+# Alternatively, this software may be distributed under the terms of the
+# BSD license.
+#
+# See LICENSE and COPYING for more details.
+#
+
+python sub_and_send.py &
+PID=$!
+echo "PID="$PID
+sleep 0.5
+vlc -4 udp://@:56492
+kill -s INT $PID

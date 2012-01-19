@@ -1,0 +1,43 @@
+Installation and Running of the Blackadder Video GUI Demo.
+
+
+There are no particular requirements for running the demo although there are 
+some things you'll need to do (seems like a lot - shouldn't take long, I've 
+been very verbose!) - I'll assume a blank install here on something like Debian:
+
+1) Install VLC (luggage or later should be ok).
+
+2) You will need to build the java bindings (instructions are included in the 
+java bindings directory - /BAv0.2/lib/bindings/java-binding). Make sure you 
+get the correct location of your jni.h file in the Makefile and then do a 'make'.
+
+3) Edit the project.properties file and correct the path to your specific 
+"java-binding/jni/eu_pursuit_client_BlackadderWrapper.o" file.
+
+4) You must add the necessary jar files to your lib folder. For more information,
+see lib/BuildLib.txt.
+
+5) In the video demo directory, type 'ant' to build the project. You may need to
+edit the build.xml file and change line 9 to point to your v0.2 location.
+
+6) You need to start blackadder. I do it by running sudo click sample.conf 
+in the blackadder src directory.
+
+7) You're now ready to run the app! The two commands are;
+ant publisher
+ant subscriber
+
+Run the publisher first, add some videos and then run the subscriber. You 
+will need to refresh the catalog whenever you change it in the publisher. 
+The video should start when you click on subscribe - it should stop when 
+you unsubscribe. If you then re-subscribe, it should start again from the beginning.
+
+You should *not* subscribe to more than one video at a time (as a single user). 
+To subscribe to another video, you should unsubscribe from the previous one first.
+
+Also, please note that this is a demo and is likely to crack under pressure....
+
+If any of this is unclear or unintelligible, then please let me know! If you 
+are getting any strange errors, then let me know as I've probably had them before.
+
+Ben.Tagger@cl.cam.ac.uk

@@ -1,0 +1,6 @@
+MAKE=gmake
+
+.MAIN: all
+
+.DEFAULT:
+	$(MAKE) $@

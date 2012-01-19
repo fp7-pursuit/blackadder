@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- WARNING: Eclipse auto-generated file.
+              Any modifications will be overwritten.
+              To include a user specific buildfile here, simply create one in the same
+              directory with the processing instruction <?eclipse.ant.import?>
+              as the first entry and export the buildfile again. -->
+<project basedir="." default="build" name="Java-Voice">
+    <property environment="env"/>
+    <property name="debuglevel" value="source,lines,vars"/>
+    <property name="target" value="1.6"/>
+    <property name="source" value="1.6"/>
+    <path id="Java-Voice.classpath">
+        <pathelement location="bin"/>
+        <pathelement location="lib/blackadder-java-binding.jar"/>
+        <pathelement location="lib/org.dyno.visual.swing_0.9.12.I20090527-2200.jar"/>
+        <pathelement location="lib/org.dyno.visual.swing.borders_0.9.12.I20090506-2220.jar"/>
+        <pathelement location="lib/org.dyno.visual.swing.grouplayouts_0.9.12.I20090506-2220.jar"/>
+        <pathelement location="lib/org.dyno.visual.swing.layouts_0.9.12.I20090527-2200.jar"/>
+        <pathelement location="lib/org.dyno.visual.swing.lnfs_0.9.12.I20090506-2220.jar"/>
+        <pathelement location="lib/org.dyno.visual.swing.parser_0.9.12.I20090522-2330.jar"/>
+        <pathelement location="lib/org.dyno.visual.swing.types_0.9.12.I20090527-2200.jar"/>
+        <pathelement location="lib/org.dyno.visual.swing.widgets_0.9.12.I20090527-2200.jar"/>
+    </path>
+    <target name="init">
+        <mkdir dir="bin"/>
+        <copy includeemptydirs="false" todir="bin">
+            <fileset dir="src">
+                <exclude name="**/*.launch"/>
+                <exclude name="**/*.java"/>
+            </fileset>
+        </copy>
+    </target>
+    <target name="clean">
+        <delete dir="bin"/>
+    </target>
+    <target depends="clean" name="cleanall"/>
+    <target depends="build-subprojects,build-project" name="build"/>
+    <target name="build-subprojects"/>
+    <target depends="init" name="build-project">
+        <echo message="${ant.project.name}: ${ant.file}"/>
+        <javac debug="true" debuglevel="${debuglevel}" destdir="bin" source="${source}" target="${target}">
+            <src path="src"/>
+            <classpath refid="Java-Voice.classpath"/>
+        </javac>
+    </target>   
+</project>

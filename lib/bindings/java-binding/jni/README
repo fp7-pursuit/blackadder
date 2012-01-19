@@ -1,0 +1,9 @@
+The jni binding is built and tested with openjdk. To install the openjdk implementation of the JVM, run
+
+sudo apt-get install openjdk-6-jdk
+
+Then, open the Makefile and edit the second line (the one that declares variable JNI_INC) so that it points to the correct directory. If you don't know where jni header files are located, run a 
+
+locate jni.h
+
+on a terminal. Again, make sure you are using openjdk.

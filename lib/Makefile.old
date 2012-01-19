@@ -1,0 +1,47 @@
+# source files.
+SRC =  	bitvector.cpp blackadder.cpp nb_blackadder.cpp
+
+OBJ = $(SRC:.cpp=.o)
+
+OUT = libblackadder.a
+
+LIB_DIR=/usr/lib
+INCLUDE_DIR=/usr/include
+
+# include directories
+INCLUDES = -I. -I../include/ -I/usr/local/include
+
+# C++ compiler flags (-g -O2 -Wall)
+CCFLAGS = -g
+
+# compiler
+CCC = g++
+
+# library paths
+LIBS = -L../ -L/usr/local/lib -lm
+
+# compile flags
+LDFLAGS = -g
+
+.SUFFIXES: .cpp
+
+default: $(OUT)
+
+.cpp.o:
+	$(CCC) $(INCLUDES) $(CCFLAGS) -c $< -o $@
+
+$(OUT): $(OBJ)
+	ar rcs $(OUT) $(OBJ)
+
+clean:
+	rm -f $(OBJ) $(OUT) Makefile.bak 
+
+install: $(OUT)
+	cp blackadder.hpp nb_blackadder.hpp bitvector.hpp $(INCLUDE_DIR)
+	cp $(OUT) $(LIB_DIR)
+
+uninstall:
+	rm -f $(INCLUDE_DIR)/blackadder.hpp
+	rm -f $(INCLUDE_DIR)/nb_blackadder.hpp
+	rm -f $(INCLUDE_DIR)/bitvector.hpp
+	rm -f $(LIB_DIR)/$(OUT)

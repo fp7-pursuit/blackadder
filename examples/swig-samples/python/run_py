@@ -1,0 +1,3 @@
+#!/bin/sh
+#export PYTHONPATH=$HOME/bin/blackadder/lib/python2.6/site-packages
+python $@

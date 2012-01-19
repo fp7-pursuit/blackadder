@@ -1,0 +1,9 @@
+# Usage in FreeBSD:  make
+# Usage in Mac OS X: bsdmake
+
+MAKE=gmake
+
+.MAIN: all
+
+.DEFAULT:
+	$(MAKE) $@

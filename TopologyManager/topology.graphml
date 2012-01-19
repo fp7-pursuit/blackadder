@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns
+         http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+<!-- Created by igraph -->
+  <key id="FID_LEN" for="graph" attr.name="FID_LEN" attr.type="double"/>
+  <key id="TM" for="graph" attr.name="TM" attr.type="string"/>
+  <key id="TM_MODE" for="graph" attr.name="TM_MODE" attr.type="string"/>
+  <key id="NODEID" for="node" attr.name="NODEID" attr.type="string"/>
+  <key id="iLID" for="node" attr.name="iLID" attr.type="string"/>
+  <key id="LID" for="edge" attr.name="LID" attr.type="string"/>
+  <graph id="G" edgedefault="directed">
+    <data key="FID_LEN">8</data>
+    <data key="TM">00000001</data>
+    <data key="TM_MODE">user</data>
+    <node id="n0">
+      <data key="NODEID">00000001</data>
+      <data key="iLID">0000100000000000000000000000000000000000000000000000000000000000</data>
+    </node>
+    <node id="n1">
+      <data key="NODEID">00000002</data>
+      <data key="iLID">0000000000000000000000000000000000000000000000000000000000010000</data>
+    </node>
+    <node id="n2">
+      <data key="NODEID">00000003</data>
+      <data key="iLID">0000000000000000000000000000000000000000000000000000000000000010</data>
+    </node>
+    <edge source="n0" target="n1">
+      <data key="LID">0000000000000000000000000010000000000000000000000000000000000000</data>
+    </edge>
+    <edge source="n1" target="n0">
+      <data key="LID">0000000000000000000000000000100000000000000000000000000000000000</data>
+    </edge>
+    <edge source="n1" target="n2">
+      <data key="LID">0000000000000000001000000000000000000000000000000000000000000000</data>
+    </edge>
+    <edge source="n2" target="n1">
+      <data key="LID">0000000000000000000000000000000001000000000000000000000000000000</data>
+    </edge>
+  </graph>
+</graphml>
+

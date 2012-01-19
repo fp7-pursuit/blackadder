@@ -1,0 +1,17 @@
+To run the Java-based voice app
+-------------------------------
+
+1. First update (or create your own) config.txt file. Make sure to set the JNI_PATH variable so that it points to the location of the blackadder java binding library (eu_pursuit_client_BlackadderWrapper.o). The Java binding is located in blackadder-dir/lib/bindings/java-binding. See the binding's README file for building the java-binding. The BUFFER_SIZE variable defines the voice packet sizes. Do not change it, otherwise you are at your own risk (e.g. blackadder may discard packets for being too large).
+
+2. While in the java-voice directory, execute from the command-line
+
+./run-application.sh -f conf_file
+
+where conf_file is the configuration file.
+
+Requirements
+-----------------------------------------
+
+The Blackadder Java voice app has been tested with blackadder v0.2 and the respective Java binding. It requires Java 1.5+ (the same as the binding) and has been tested in Ubuntu Linux with openjdk installed.
+
+In addition you need Visual Swing for Eclipse. See install.txt in the ./lib directory for further instructions.

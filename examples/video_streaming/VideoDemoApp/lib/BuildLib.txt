@@ -1,0 +1,14 @@
+In order to run this application, you must include the following jar files into the lib folder:
+
+(1) The Apache Commons Codex.
+http://mirror.lividpenguin.com/pub/apache//commons/codec/binaries/commons-codec-1.5-bin.zip
+
+(2) The JNA libraries
+http://java.net/projects/jna/sources/svn/content/tags/3.3.0/jnalib/dist/jna.jar
+http://java.net/projects/jna/sources/svn/content/tags/3.3.0/jnalib/dist/platform.jar
+
+(3)The VLCj jar
+http://vlcj.googlecode.com/files/vlcj-1.1.5.1.jar
+
+Keep these jars inside your lib folder but, please, do not commit them to the repository.
+Ben.Tagger@cl.cam.ac.uk

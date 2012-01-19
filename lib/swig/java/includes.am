@@ -1,0 +1,30 @@
+#-
+# Copyright (C) 2011  Oy L M Ericsson Ab, NomadicLab
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+#
+# Alternatively, this software may be distributed under the terms of the
+# BSD license.
+#
+# See LICENSE and COPYING for more details.
+#
+
+JAVA_INCLUDES =
+
+if LINUX
+# XXX: Assume OpenJDK 6, installed in the default location, as the primary
+#      alternative. Also support Sun JDK 6 as a secondary option.
+JAVA_INCLUDES += -I/usr/lib/jvm/java-6-openjdk/include -I/usr/lib/jvm/java-6-openjdk/include/linux -I/usr/lib/jvm/java-6-sun/include -I/usr/lib/jvm/java-6-sun/include/linux
+endif
+
+if FREEBSD
+# XXX: Assume OpenJDK 6, installed in the default location.
+JAVA_INCLUDES += -I/usr/local/openjdk6/include -I/usr/local/openjdk6/include/freebsd
+endif
+
+if DARWIN
+# XXX: Assume the default Java installation.
+JAVA_INCLUDES += -I/System/Library/Frameworks/JavaVM.framework/Headers
+endif

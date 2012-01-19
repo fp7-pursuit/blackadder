@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="lib/blackadder-java-binding.jar"/>
+	<classpathentry kind="lib" path="lib/org.dyno.visual.swing_0.9.12.I20090527-2200.jar"/>
+	<classpathentry kind="lib" path="lib/org.dyno.visual.swing.borders_0.9.12.I20090506-2220.jar"/>
+	<classpathentry kind="lib" path="lib/org.dyno.visual.swing.grouplayouts_0.9.12.I20090506-2220.jar"/>
+	<classpathentry kind="lib" path="lib/org.dyno.visual.swing.layouts_0.9.12.I20090527-2200.jar"/>
+	<classpathentry kind="lib" path="lib/org.dyno.visual.swing.lnfs_0.9.12.I20090506-2220.jar"/>
+	<classpathentry kind="lib" path="lib/org.dyno.visual.swing.parser_0.9.12.I20090522-2330.jar"/>
+	<classpathentry kind="lib" path="lib/org.dyno.visual.swing.types_0.9.12.I20090527-2200.jar"/>
+	<classpathentry kind="lib" path="lib/org.dyno.visual.swing.widgets_0.9.12.I20090527-2200.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>

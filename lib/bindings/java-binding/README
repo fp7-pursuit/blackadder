@@ -1,0 +1,20 @@
+The Blackadder Java binding has been tested with Java 6. It has been built
+using the OpenJDK JVM. Compatibility with other Java VMs is uncertain.
+
+First, make sure that you build the C code in the jni folder. There is a
+README file there for instructions.
+
+This directory is an Eclipse project folder, so you can directly import it
+to the Eclipse IDE. If you prefer to compile it manually, there is an ant
+script file available. Make sure that ant is installed. In case ant is
+missing, just run:
+
+sudo apt-get install ant
+
+You also need to have a JAR file for Apache Commons Codec in your lib
+subdirectory. See ./lib/install.txt for further instructions.
+
+To compile the Java code, run ant.
+
+For examples of using the Java binding with Blackadder, see example code in
+the test directory.

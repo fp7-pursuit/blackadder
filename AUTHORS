@@ -1,0 +1,29 @@
+Original authors
+================
+
+George Parisis          <georgios.parisis@cl.cam.ac.uk>
+    Architectural design. Implementation of Click elements, topology manager,
+    deployment tool, API libraries and sample applications for C++.
+
+Dirk Trossen            <dirk.trossen@cl.cam.ac.uk>
+    Architectural design.
+
+
+Contributors
+============
+
+Jimmy Kjällman          <jimmy.kjallman@nomadiclab.com>
+    FreeBSD and Mac OS X porting (Unix sockets), SWIG-based language bindings,
+    C binding, sample applications for Python, Ruby, Java and C.
+
+Dimitris Syrivelis      <jsyr@inf.uth.gr>
+    Deployment tool, PlanetLab support, Click elements.
+
+Christos Tsilopoulos    <tsilochr@aueb.gr>
+    Java bindings and Java-based voice application.
+
+Charilaos Stais         <stais@aueb.gr>
+    Java-based voice application.
+
+Ben Tagger              <ben.tagger@cl.cam.ac.uk>
+    Video streaming GUI demo application.

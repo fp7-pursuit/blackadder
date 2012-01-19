@@ -1,0 +1,17 @@
+In order to run this application, you must include the following JAR
+files into the lib folder:
+
+(1) Blackadder Java binding - included by default
+File:
+blackadder-java-binding.jar
+
+(2) Visual Swing for Eclipse - download and unzip: http://visualswing4eclipse.googlecode.com/files/vs4e_0.9.12.I20090527-2200.zip
+Files:
+org.dyno.visual.swing.borders_0.9.12.I20090506-2220.jar
+org.dyno.visual.swing.grouplayouts_0.9.12.I20090506-2220.jar
+org.dyno.visual.swing.layouts_0.9.12.I20090527-2200.jar
+org.dyno.visual.swing.lnfs_0.9.12.I20090506-2220.jar
+org.dyno.visual.swing.parser_0.9.12.I20090522-2330.jar
+org.dyno.visual.swing.types_0.9.12.I20090527-2200.jar
+org.dyno.visual.swing.widgets_0.9.12.I20090527-2200.jar
+org.dyno.visual.swing_0.9.12.I20090527-2200.jar
