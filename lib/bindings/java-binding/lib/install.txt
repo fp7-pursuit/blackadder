@@ -1,5 +1,6 @@
 In order to run this application, you must include the following JAR
 files into the lib folder:
 
-Apache Commons Codec
+Apache Commons Codec from:
 http://archive.apache.org/dist/commons/codec/binaries/commons-codec-1.4-bin.zip
+Extract commons-codec-1.4.jar to the lib folder.

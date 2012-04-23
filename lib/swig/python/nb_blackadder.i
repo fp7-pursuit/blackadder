@@ -1,5 +1,5 @@
 /*-
- * Copyright (C) 2011  Oy L M Ericsson Ab, NomadicLab
+ * Copyright (C) 2011-2012  Oy L M Ericsson Ab, NomadicLab
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -54,3 +54,69 @@
         $self->cf(ev);
     }
 }
+
+%{
+void *_to_malloc_buffer(void *data, unsigned int data_len)
+{
+    void *buf;
+
+    if (data_len < 0)
+        return NULL;
+
+    buf = malloc(data_len);
+    if (buf == NULL)
+        return NULL; /* XXX */
+
+    if (data != NULL)
+        memcpy(buf, data, data_len);
+    else
+        memset(buf, 0, data_len);
+
+    return buf;
+}
+%}
+
+%inline %{
+/*
+ * Copy data_len bytes from data to a newly allocated buffer. This
+ * buffer can be given to the publish_data() function in the
+ * non-blocking API. The buffer will be freed (asynchronously)
+ * by the API library once the packet has been sent.
+ */
+PyObject *to_malloc_buffer(void *data, unsigned int data_len)
+{
+    void *buf;
+
+    buf = _to_malloc_buffer(data, data_len);
+    if (buf == NULL)
+        return NULL; /* XXX */
+
+    return PyBuffer_FromReadWriteMemory(buf, data_len);
+}
+
+/* Allocate new empty buffer. */
+PyObject *new_malloc_buffer(unsigned int data_len)
+{
+    return to_malloc_buffer(NULL, data_len);
+}
+
+/* Free unsent data. */
+void free_malloc_buffer(PyObject *obj)
+{
+    void *buf = NULL;
+    ssize_t ssize;
+    int res;
+
+    if (obj == Py_None)
+        return; /* XXX */
+
+    if (!PyObject_CheckReadBuffer(obj))
+        return; /* XXX */
+
+    res = PyObject_AsReadBuffer(obj, (const void **)&buf, &ssize);
+    if (!SWIG_IsOK(res))
+        return; /* XXX */
+
+    free(buf);
+}
+%}

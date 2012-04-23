@@ -412,10 +412,9 @@ void Blackadder::getEvent(Event &ev) {
     msg.msg_iovlen = 1;
     iov.iov_base = fake_buf;
     iov.iov_len = 1;
-again:
 #if HAVE_USE_NETLINK
     total_buf_size = recvmsg(sock_fd, &msg, MSG_PEEK | MSG_TRUNC);
-#else	
+#else
     if (recvmsg(sock_fd, &msg, MSG_PEEK) < 0 || ioctl(sock_fd, FIONREAD, &total_buf_size) < 0) {
         cout << "recvmsg/ioctl: " << errno << endl;
         total_buf_size = -1;
@@ -426,9 +425,10 @@ again:
         iov.iov_len = total_buf_size;
         bytes_read = recvmsg(sock_fd, &msg, 0);
         if (bytes_read < 0) {
-            perror("recvmsg");
+            //perror("recvmsg for data");
             free(iov.iov_base);
-            goto again;
+            ev.type = UNDEF_EVENT;
+            return;
         }
         ev.buffer = iov.iov_base;
         ev.type = *((char *) ev.buffer + sizeof (struct nlmsghdr));
@@ -443,25 +443,25 @@ again:
         }
     } else if (errno == EINTR) {
         /* Interrupted system call. */
-        ev.type = 0;
+        ev.type = UNDEF_EVENT;
         return;
     } else {
-        goto again;
+        ev.type = UNDEF_EVENT;
+        return;
     }
 }
 
 Event::Event()
-    : type(0), id(), data(NULL), data_len(0), buffer(NULL)
-{
+: type(0), id(), data(NULL), data_len(0), buffer(NULL) {
 }
 
 Event::Event(Event &ev) {
     type = ev.type;
     id = ev.id;
     data_len = ev.data_len;
-    buffer = malloc(sizeof (struct nlmsghdr) + sizeof (type) + sizeof (unsigned char) + id.length() + data_len);
-    memcpy(buffer, ev.buffer, sizeof (struct nlmsghdr) + sizeof (type) + sizeof (unsigned char) + id.length() + data_len);
-    data = (char *) buffer + sizeof (struct nlmsghdr) + sizeof (type) + sizeof (unsigned char) + id.length();
+    buffer = malloc(sizeof (struct nlmsghdr) + sizeof (type) + sizeof (unsigned char) +id.length() + data_len);
+    memcpy(buffer, ev.buffer, sizeof (struct nlmsghdr) + sizeof (type) + sizeof (unsigned char) +id.length() + data_len);
+    data = (char *) buffer + sizeof (struct nlmsghdr) + sizeof (type) + sizeof (unsigned char) +id.length();
 }
 
 Event::~Event() {

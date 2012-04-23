@@ -59,7 +59,7 @@ class Event;
 /**@brief (User Library) This is the wrapper class that makes the service model available to all applications. 
  * 
  * blackadder expects requests to be sent in its netlink socket. Therefore the wrapper class just exports some human-friendly methods for creating service model compliant buffers that are sent to blackadder.
- * blackadder implements the Singleton Pattern. A single blackadder object can be created by a single process using the <b>public</b> Instance method. The Constructor is <b>private</b>.
+ * blackadder implements the Singleton Pattern. A single blackadder object can be created by a single process using the <b>public</b> Instance method. The Constructor is <b>protected</b>.
  * 
  * @note All service request related methods enforce some rules regarding the size of the identifiers so that blackadder is not confused.
  */
@@ -71,7 +71,7 @@ public:
     ~Blackadder();
     /**@brief the Instance method is the only way to construct a blackadder object. It is impossible to construct multiple objects since Instance will return the already constructed one.
      * 
-     * Instance will create a new object by calling the private constructor and assign it to the m_pInstance value ONLY the first time it is called. All other times it will return the m_pInstance pointer.
+     * Instance will create a new object by calling the protected constructor and assign it to the m_pInstance value ONLY the first time it is called. All other times it will return the m_pInstance pointer.
      * @param user_space if it is true, the netlink is created so that it can communicate with blackadder running in user space. 
      * if it is false, the netlink is created so that it can communicate with blackadder running in kernel space.
      * @return 
@@ -99,6 +99,8 @@ public:
      * If id is a single fragment, the request is about publishing a new information item.
      * 
      * If id consists of multiple fragments, the request is about republishing an existing information item under an existing scope.
+     *
+     * Implicitly registers to START_PUBLISH and STOP_PUBLISH events for the corresponding information item. START_PUBLISH tells the application that it has at least one subscriber to the corresponding information item and STOP_PUBLISH means that it has no subscribers.
      * 
      * @param id the identifier of an information item. It can be a single fragment with size PURSUIT_ID_LEN or multiple fragments PURSUIT_ID_LEN each.
      * @param prefix_id the identifier of the father scope. It can be a single fragment with size PURSUIT_ID_LEN or multiple fragments PURSUIT_ID_LEN each.
@@ -145,6 +147,8 @@ public:
      * 
      * id CANNOT consist of multiple fragments. 
      * 
+     * Implicitly registers to SCOPE_PUBLISHED and SCOPE_UNPUBLISHED events that provide notifications about new or deleted subscopes, as well as to PUBLISHED_DATA events for all items directly under the scope.
+     *
      * @param id id the identifier of a scope. It can be a single fragment with size PURSUIT_ID_LEN.
      * @param prefix_id prefix_id the identifier of the father scope. It can be an empty string, a single fragment with size PURSUIT_ID_LEN or multiple fragments PURSUIT_ID_LEN each.
      * @param strategy the dissemination strategy assigned to the request.
@@ -160,6 +164,8 @@ public:
      * If id is a single fragment, the request is about unpublishing a scope.
      * 
      * id CANNOT consist of multiple fragments. 
+     *
+     * Implicitly registers to PUBLISHED_DATA events for the corresponding information item.
      *  
      * @param id id the identifier of an information item. It can be a single fragment with size PURSUIT_ID_LEN.
      * @param prefix_id prefix_id the identifier of the father scope. It can be a single fragment with size PURSUIT_ID_LEN or multiple fragments PURSUIT_ID_LEN each.
@@ -220,12 +226,13 @@ public:
      * In kernel this is not required since Blackadder can monitor applications.
      */
     void disconnect();
-private:
+protected:
     /**@brief Constructor: It creates the netlink socket, binds it and construct the appropriate sockaddr_nl structures for sending requests to Blackadder.
      * 
      * @param user_space Whether Blackadder runs in user or kernel space.
      */
     Blackadder(bool user_space);
+private:
     /**@brief create_and_send_buffers is called by all other service model related methods. It creates and sends the buffers to Blackadder.
      * 
      * @param type as passed by a request method.

@@ -1,2 +1,2 @@
-JNI_PATH:/home/tarantula/Documents/blackadder/v0.2/lib/bindings/java-binding/jni/eu_pursuit_client_BlackadderWrapper.o
+JNI_PATH:/home/pursuit/blackadder/trunk/lib/bindings/java-binding/jni/eu_pursuit_client_BlackadderWrapper.so
 BUFFER_SIZE:1024

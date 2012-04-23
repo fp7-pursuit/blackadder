@@ -2,6 +2,7 @@ In order to run this application, you must include the following JAR
 files into the lib folder:
 
 (1) Blackadder Java binding - included by default
+Can be compiled by running `ant dist' in the Java bindings directory.
 File:
 blackadder-java-binding.jar
 

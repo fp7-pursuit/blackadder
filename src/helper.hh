@@ -24,7 +24,7 @@
 #define NODEID_LEN PURSUIT_ID_LEN
 /** The size in bytes of the all LIPSIN identifiers, Link identifiers and internal identifiers
  */
-#define FID_LEN 8
+#define FID_LEN 32
 /****some strategies*****/
 #define NODE_LOCAL          0
 #define LINK_LOCAL          1

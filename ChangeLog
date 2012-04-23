@@ -1,0 +1,14 @@
+Changes in Blackadder v0.2.1:
+- Multi-interface fixes
+- Kernel-mode fixes
+- Raw IP socket fixes
+- Regenerate same LIDs in deployment
+- Loop-prevention fixes
+- FID length increase
+- Fixes to examples
+- Java voice app fixes/improvements
+- Blackadder constructor is protected
+- Event handling fix
+- Non-blocking Python and Ruby API fixes
+- Improved fragmentation support
+- Documentation improvements

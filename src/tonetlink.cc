@@ -97,7 +97,7 @@ bool ToNetlink::run_task(Task *t) {
         up_packet = up_queue.at(up_queue.size() - 1);
         up_queue.pop_back();
         pid = up_packet->anno_u32(0);
-        ret = netlink_unicast(netlink_element->nl_sk, up_packet->skb(), pid, MSG_DONTWAIT);
+        ret = netlink_unicast(netlink_element->nl_sk, up_packet->skb(), pid, MSG_WAITALL);
     }
     mutex_unlock(&up_mutex);
     if (test_bit(TASK_IS_SCHEDULED, &_to_netlink_element_state) == 1) {
@@ -137,7 +137,7 @@ void ToNetlink::selected(int fd, int mask) {
             msg.msg_namelen = sizeof (d_nladdr);
             msg.msg_iov = iov;
             msg.msg_iovlen = 1;
-            bytes_written = sendmsg(fd, &msg, MSG_DONTWAIT);
+            bytes_written = sendmsg(fd, &msg, MSG_WAITALL);
             /*remove buffer from queue and free it*/
             newPacket->kill();
             netlink_element->out_buf_queue.pop();

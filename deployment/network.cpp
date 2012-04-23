@@ -92,7 +92,8 @@ void Domain::calculateLID(vector<Bitvector> &LIDs, int index) {
 
 void Domain::assignLIDs() {
     int LIDCounter = 0;
-    srand(time(NULL));
+    srand(0);
+    //srand(66000);
     /*first calculated how many LIDs should I calculate*/
     int totalLIDs = number_of_nodes/*the iLIDs*/ + number_of_connections;
     vector<Bitvector> LIDs(totalLIDs);
@@ -125,7 +126,7 @@ string Domain::getTestbedIPFromLabel(string label) {
 
 /* Values for target machines running __linux__: */
 #define HWADDR_LABEL   "HWaddr"
-#define HWADDR_OFFSET  20
+#define HWADDR_OFFSET  21
 
 /* For __APPLE__,   the label should be "ether" and the offset 19
  * For __FreeBSD__, the label should be "ether" and the offset 18. */
@@ -147,9 +148,9 @@ void Domain::discoverMacAddresses() {
                     if (nc->src_mac.length() == 0) {
                         testbed_ip = getTestbedIPFromLabel(nc->src_label);
                         if (sudo) {
-                            command = "ssh " + user + "@" + testbed_ip + " sudo ifconfig " + nc->src_if + " | grep "HWADDR_LABEL;
+                            command = "ssh " + user + "@" + testbed_ip + " -t sudo ifconfig " + nc->src_if + " | grep "HWADDR_LABEL;
                         } else {
-                            command = "ssh " + user + "@" + testbed_ip + " ifconfig " + nc->src_if + " | grep "HWADDR_LABEL;
+                            command = "ssh " + user + "@" + testbed_ip + " -t ifconfig " + nc->src_if + " | grep "HWADDR_LABEL;
                         }
                         cout << command << endl;
                         fp_command = popen(command.c_str(), "r");
@@ -177,9 +178,9 @@ void Domain::discoverMacAddresses() {
                     if (nc->dst_mac.length() == 0) {
                         testbed_ip = getTestbedIPFromLabel(nc->dst_label);
                         if (sudo) {
-                            command = "ssh " + user + "@" + testbed_ip + " sudo ifconfig " + nc->dst_if + " | grep "HWADDR_LABEL;
+                            command = "ssh " + user + "@" + testbed_ip + " -t sudo ifconfig " + nc->dst_if + " | grep "HWADDR_LABEL;
                         } else {
-                            command = "ssh " + user + "@" + testbed_ip + " ifconfig " + nc->dst_if + " | grep "HWADDR_LABEL;
+                            command = "ssh " + user + "@" + testbed_ip + " -t ifconfig " + nc->dst_if + " | grep "HWADDR_LABEL;
                         }
                         cout << command << endl;
                         fp_command = popen(command.c_str(), "r");
@@ -226,7 +227,7 @@ void Domain::writeClickFiles(bool montoolstub) {
         NetworkNode *nn = network_nodes[i];
         click_conf.open((write_conf + nn->label + ".conf").c_str());
         if (montoolstub && (nn->running_mode.compare("user") == 0)) {
-            click_conf << "require(blackadder); \n\nControlSocket(\"TCP\",55555);\n\n " << endl << endl;
+            click_conf << "require(blackadder); \n\nControlSocket(\"TCP\",55000);\n\n " << endl << endl;
         } else {
             click_conf << "require(blackadder);" << endl << endl;
         }
@@ -296,18 +297,12 @@ void Domain::writeClickFiles(bool montoolstub) {
                 }
             }
             /*Necessary Click Elements*/
-            if (nn->running_mode.compare("user") == 0) {
-                click_conf << "classifier::Classifier(12/080a);" << endl;
-            } else {
-                click_conf << "classifier::Classifier(12/080a, -);" << endl;
-                click_conf << "tohost::ToHost();" << endl;
-            }
         } else {
             /*raw sockets here*/
             click_conf << "tsf" << "::ThreadSafeQueue(1000);" << endl;
             if (nn->running_mode.compare("user") == 0) {
-                click_conf << "rawsocket" << "::RawSocket(UDP, 55000)" << endl;
-                click_conf << "classifier::IPClassifier(dst udp port 55000 and src udp port 55000)" << endl;
+                click_conf << "rawsocket" << "::RawSocket(UDP, 55555)" << endl;
+                //click_conf << "classifier::IPClassifier(dst udp port 55000 and src udp port 55000)" << endl;
             } else {
                 cerr << "Something is wrong...I should not build click config using raw sockets for node " << nn->label << "that will run in kernel space" << endl;
             }
@@ -317,23 +312,33 @@ void Domain::writeClickFiles(bool montoolstub) {
         click_conf << endl << endl << "proxy[0]->tonetlink;" << endl << "fromnetlink->[0]proxy;" << endl << "localRV[0]->[1]proxy[1]->[0]localRV;" << endl << "proxy[2]-> [0]fw[0] -> [2]proxy;" << endl;
         if (overlay_mode.compare("mac") == 0) {
             for (int j = 0; j < unique_ifaces.size(); j++) {
-                if (montoolstub && j == 0 && (nn->running_mode.compare("user") == 0)) {
-                    click_conf << "fw[" << (j + 1) << "]->tsf" << j << "->outc::Counter()->todev" << j << ";" << endl;
-                    click_conf << "fromdev" << j << "->classifier[0]->inc::Counter()  -> [" << (j + 1) << "]fw;" << endl;
+                if (nn->running_mode.compare("kernel") == 0) {
+                    click_conf << endl << "classifier" << j << "::Classifier(12/080a,-);" << endl;
+                    if (montoolstub && j == 0 && (nn->running_mode.compare("user") == 0)) {
+                        click_conf << "fw[" << (j + 1) << "]->tsf" << j << "->outc::Counter()->todev" << j << ";" << endl;
+                        click_conf << "fromdev" << j << "->classifier" << j << "[0]->inc::Counter()  -> [" << (j + 1) << "]fw;" << endl;
+                    } else {
+                        click_conf << "fw[" << (j + 1) << "]->tsf" << j << "->todev" << j << ";" << endl;
+                        click_conf << "fromdev" << j << "->classifier" << j << "[0]->[" << (j + 1) << "]fw;" << endl;
+                    }
+                    click_conf <<"classifier" << j << "[1]->ToHost()"<<endl;
                 } else {
-                    click_conf << "fw[" << (j + 1) << "]->tsf" << j << "->todev" << j << ";" << endl;
-                    click_conf << "fromdev" << j << "->classifier[0]->[" << (j + 1) << "]fw;" << endl;
+                    click_conf << endl << "classifier" << j << "::Classifier(12/080a);" << endl;
+                    if (montoolstub && j == 0 && (nn->running_mode.compare("user") == 0)) {
+                        click_conf << "fw[" << (j + 1) << "]->tsf" << j << "->outc::Counter()->todev" << j << ";" << endl;
+                        click_conf << "fromdev" << j << "->classifier" << j << "[0]->inc::Counter()  -> [" << (j + 1) << "]fw;" << endl;
+                    } else {
+                        click_conf << "fw[" << (j + 1) << "]->tsf" << j << "->todev" << j << ";" << endl;
+                        click_conf << "fromdev" << j << "->classifier" << j << "[0]->[" << (j + 1) << "]fw;" << endl;
+                    }
                 }
-            }
-            if (nn->running_mode.compare("kernel") == 0) {
-                click_conf << "classifier[1]->tohost;" << endl;
             }
         } else {
             /*raw sockets here*/
             if (montoolstub) {
-                click_conf << "fw[1] -> tsf -> outc::Counter() -> rawsocket -> classifier -> inc::Counter()  -> [1]fw" << endl;
+                click_conf << "fw[1] -> tsf -> outc::Counter() -> rawsocket -> IPClassifier(dst udp port 55555 and src udp port 55555)[0]-> inc::Counter()  -> [1]fw" << endl;
             } else {
-                click_conf << "fw[1] ->  tsf -> rawsocket -> classifier -> [1]fw" << endl;
+                click_conf << "fw[1] ->  tsf -> rawsocket -> IPClassifier(dst udp port 55555 and src udp port 55555)[0] -> [1]fw" << endl;
             }
         }
         click_conf.close();
@@ -539,4 +544,5 @@ string Domain::writeConfigFile(string filename) {
     configfile.close();
     return (write_conf + filename);
 }
+
 

@@ -30,7 +30,7 @@ class NBSubscriber(object):
         @blackadder_event_handler
         def event_handler(ev):
             self.__last_ev = ev
-            self.print_last_ev()
+            self.print_ev()
         
         ba = NB_Blackadder.Instance(True)
         ba.setPyCallback(event_handler)

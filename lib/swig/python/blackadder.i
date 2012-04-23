@@ -26,6 +26,7 @@
 %include bytestr.i
 // Apply typemap for (void *BYTES, unsigned int LEN) to str_opt and data
 %apply (void *BYTES, unsigned int LEN) { (void *str_opt, unsigned int str_opt_len), (void *data, unsigned int data_len) };
+%apply (void *BYTES, unsigned int LEN) { (const unsigned char *data, unsigned int data_len) };
 // Apply typemap for char *BYTE to (e.g.) Event.data
 %apply char *BYTE { void *data };
 

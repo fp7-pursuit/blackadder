@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #-
-# Copyright (C) 2011  Oy L M Ericsson Ab, NomadicLab
+# Copyright (C) 2012  Oy L M Ericsson Ab, NomadicLab
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 as
@@ -13,10 +13,9 @@
 # See LICENSE and COPYING for more details.
 #
 
-"""Simple text subscriber example (non-blocking)."""
+"""Very simple non-blocking text publisher example."""
 
 from blackadder.blackadder import *
-#import select
 
 def _main(argv=[]):
     strategy = NODE_LOCAL
@@ -24,25 +23,28 @@ def _main(argv=[]):
         strategy = int(argv[1])
     
     ba = NB_Blackadder.Instance(True)
+
+    @blackadder_event_handler
+    def event_handler(ev):
+        print ev
+        if not ev or ev.type != START_PUBLISH:
+            return
+        data = "Hello"
+        ba.publish_data(sid+rid, strategy, None, to_malloc_buffer(data))
+    
     ba.setPyCallback(event_handler)
     
+    sid0 = ""
     sid  = '\x0a'+6*'\x00'+'\x0b'
     rid  = '\x0c'+6*'\x00'+'\x0d'
     
-    ba.subscribe_info(rid, sid, strategy, None)
+    ba.publish_scope(sid, sid0, strategy, None)
+    ba.publish_info(rid, sid, strategy, None)
     
     try:
-        ba.join() # Or, e.g.: select.select(*3*[[]])
+        ba.join()
     finally:
         ba.disconnect()
-
-@blackadder_event_handler
-def event_handler(ev):
-    print ev
-    if ev and ev.type == PUBLISHED_DATA:
-        print "id=%r" % ev.id
-        print ev.data_len, "%r" % (ev.data[:ev.data_len] if ev.data
-                                   else ev.data)
 
 if __name__ == "__main__":
     import sys

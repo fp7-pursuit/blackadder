@@ -16,7 +16,7 @@
 #include <signal.h>
 
 Blackadder *ba;
-int payload_size = 1400;
+int payload_size = 1000;
 char *payload = (char *) malloc(payload_size);
 
 void sigfun(int sig) {

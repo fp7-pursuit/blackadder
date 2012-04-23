@@ -17,7 +17,7 @@
 
 /**********************************/
 #define PURSUIT_ID_LEN 8 //in bytes
-#define FID_LEN 8 //in bytes
+#define FID_LEN 32 //in bytes
 #define NODEID_LEN PURSUIT_ID_LEN //in bytes
 /****some strategies*****/
 #define NODE_LOCAL          0
@@ -39,6 +39,7 @@
 #define CONNECT 12
 #define DISCONNECT 13
 /*****************************/
+#define UNDEF_EVENT 0
 #define START_PUBLISH 100
 #define STOP_PUBLISH 101
 #define SCOPE_PUBLISHED 102

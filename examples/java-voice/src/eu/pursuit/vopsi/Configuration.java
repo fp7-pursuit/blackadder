@@ -1,5 +1,5 @@
 /*-
- * Copyright (C) 2011  Mobile Multimedia Laboratory, AUEB
+ * Copyright (C) 2011-2012  Mobile Multimedia Laboratory, AUEB
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -11,7 +11,6 @@
  * See LICENSE and COPYING for more details.
  */
 
-
 package eu.pursuit.vopsi;
 
 import java.io.BufferedReader;
@@ -22,6 +21,8 @@ import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Properties;
 import java.util.StringTokenizer;
+import java.io.FileNotFoundException;
+import java.io.File;
 
 public class Configuration {
 
@@ -45,6 +46,14 @@ public class Configuration {
 		try {
 			InputStream resourceAsStream = this.getClass().getResourceAsStream(
 					file);
+			if (resourceAsStream==null)
+			{
+				File f =new File(file);
+				if (!f.exists()){
+					throw new FileNotFoundException("Cannot find config file "+file);
+				}
+				resourceAsStream=new FileInputStream(file);
+			}
 			p.load(resourceAsStream);
 
 		} catch (Exception e) {

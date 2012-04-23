@@ -40,7 +40,6 @@ void eventHandler(Event *ev) {
         }
     }
     delete ev;
-    delete nb_ba;
 }
 
 int main(int argc, char* argv[]) {

@@ -1,5 +1,5 @@
 /*-
- * Copyright (C) 2011  Mobile Multimedia Laboratory, AUEB
+ * Copyright (C) 2011-2012  Mobile Multimedia Laboratory, AUEB
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -10,7 +10,6 @@
  *
  * See LICENSE and COPYING for more details.
  */
-
 
 package eu.pursuit.vopsi.gui;
 
@@ -273,7 +272,7 @@ public class VoPSI_App extends JFrame {
 			isCaller = false;
 		}
 		
-		if (args.length != 0)
+		if (args.length == 2)
 		{
 			if (args[0].equals("-f"))
 			{

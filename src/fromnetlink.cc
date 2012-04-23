@@ -154,6 +154,8 @@ void FromNetlink::run_timer(Timer *_timer) {
         _pid = (*it)._pidpointer;
 #if LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 24)
         _ts = find_task_by_pid((*it)._pid_no);
+#elif LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 35)
+	_ts = pid_task(_pid, PIDTYPE_PID);
 #else
         _ts = get_pid_task(_pid, PIDTYPE_PID);
 #endif
@@ -201,7 +203,7 @@ void FromNetlink::selected(int fd, int mask) {
     if ((mask & SELECT_READ) == SELECT_READ) {
         /*read from the socket*/
 #if HAVE_USE_NETLINK
-        total_buf_size = recv(fd, fake_buf, 1, MSG_PEEK | MSG_TRUNC | MSG_DONTWAIT);
+        total_buf_size = recv(fd, fake_buf, 1, MSG_PEEK | MSG_TRUNC | MSG_WAITALL);
 #else
         total_buf_size = -1;
         if (recv(fd, fake_buf, 1, MSG_PEEK | MSG_DONTWAIT) < 0 || ioctl(fd, FIONREAD, &total_buf_size) < 0) {
@@ -214,7 +216,7 @@ void FromNetlink::selected(int fd, int mask) {
             return;
         }
         newPacket = Packet::make(100, NULL, total_buf_size, 100);
-        bytes_read = recv(fd, newPacket->data(), newPacket->length(), MSG_DONTWAIT);
+        bytes_read = recv(fd, newPacket->data(), newPacket->length(), MSG_WAITALL);
         if (bytes_read > 0) {
             if ((uint32_t)bytes_read < newPacket->length()) {
                 /* truncate to actual length */

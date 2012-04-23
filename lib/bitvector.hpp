@@ -20,10 +20,6 @@
 #include <stdio.h>
 #include <string>
 
-#ifndef FID_LEN
-#define FID_LEN 8 //in bytes
-#endif
-
 using namespace std;
 
 class Bitvector {

@@ -193,5 +193,5 @@ int main(int argc, char **argv) {
         cex.LoadCfg(string(experimentfile));
         cex.DeployExperiment();
     }
-    dm.startTM();
+    //dm.startTM();
 }

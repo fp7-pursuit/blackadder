@@ -208,7 +208,7 @@ void Forwarder::push(int in_port, Packet *p) {
             }
             counter++;
         }
-    } else if (in_port == 1) {
+    } else if (in_port >= 1) {
         /**a packet has been pushed by the underlying network.**/
         /*check if it needs to be forwarded*/
         if (gc->use_mac) {
@@ -224,7 +224,20 @@ void Forwarder::push(int in_port, Packet *p) {
                 fe = fwTable[i];
                 andVector = (FID)&(*fe->LID);
                 if (andVector == (*fe->LID)) {
-                    //click_chatter(" notify %d\n",fe->port);
+                    if (gc->use_mac) {
+                        EtherAddress src(p->data() + MAC_LEN);
+                        EtherAddress dst(p->data());
+                        if ((src.unparse().compare(fe->dst->unparse()) == 0) && (dst.unparse().compare(fe->src->unparse()) == 0)) {
+                            click_chatter("MAC: a loop from positive..I am not forwarding to the interface I received the packet from");
+                            continue;
+                        }
+                    } else {
+                        click_ip *ip = reinterpret_cast<click_ip *> ((unsigned char *)p->data());
+                        if ((ip->ip_src.s_addr == fe->dst_ip->in_addr().s_addr) && (ip->ip_dst.s_addr == fe->src_ip->in_addr().s_addr)) {
+                            click_chatter("IP: a loop from positive..I am not forwarding to the interface I received the packet from");
+                            continue;
+                        }
+                    }
                     out_links.push_back(fe);
                 }
             }
@@ -261,13 +274,12 @@ void Forwarder::push(int in_port, Packet *p) {
                     ip->ip_ttl = 250;
                     ip->ip_sum = 0;
                     ip->ip_sum = click_in_cksum((unsigned char *) ip, sizeof (click_ip));
-#if NOTYET
                     click_udp *udp = reinterpret_cast<click_udp *> (ip + 1);
-                    uint16_t len = udp->uh_ulen;
+                    //uint16_t len = udp->uh_ulen;
+		     uint16_t len = payload->length() - sizeof (click_ip); 
                     udp->uh_sum = 0;
                     unsigned csum = click_in_cksum((unsigned char *) udp, len);
                     udp->uh_sum = click_in_cksum_pseudohdr(csum, ip, len);
-#endif
                     output(fe->port).push(payload);
                 }
                 counter++;
@@ -294,3 +306,4 @@ void Forwarder::push(int in_port, Packet *p) {
 CLICK_ENDDECLS
 EXPORT_ELEMENT(Forwarder)
 ELEMENT_PROVIDES(ForwardingEntry)
+

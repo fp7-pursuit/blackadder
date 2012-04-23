@@ -1,46 +1,49 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!-- WARNING: Eclipse auto-generated file.
-              Any modifications will be overwritten.
-              To include a user specific buildfile here, simply create one in the same
-              directory with the processing instruction <?eclipse.ant.import?>
-              as the first entry and export the buildfile again. -->
-<project basedir="." default="build" name="Java-Voice">
-    <property environment="env"/>
-    <property name="debuglevel" value="source,lines,vars"/>
-    <property name="target" value="1.6"/>
-    <property name="source" value="1.6"/>
-    <path id="Java-Voice.classpath">
-        <pathelement location="bin"/>
-        <pathelement location="lib/blackadder-java-binding.jar"/>
-        <pathelement location="lib/org.dyno.visual.swing_0.9.12.I20090527-2200.jar"/>
-        <pathelement location="lib/org.dyno.visual.swing.borders_0.9.12.I20090506-2220.jar"/>
-        <pathelement location="lib/org.dyno.visual.swing.grouplayouts_0.9.12.I20090506-2220.jar"/>
-        <pathelement location="lib/org.dyno.visual.swing.layouts_0.9.12.I20090527-2200.jar"/>
-        <pathelement location="lib/org.dyno.visual.swing.lnfs_0.9.12.I20090506-2220.jar"/>
-        <pathelement location="lib/org.dyno.visual.swing.parser_0.9.12.I20090522-2330.jar"/>
-        <pathelement location="lib/org.dyno.visual.swing.types_0.9.12.I20090527-2200.jar"/>
-        <pathelement location="lib/org.dyno.visual.swing.widgets_0.9.12.I20090527-2200.jar"/>
-    </path>
-    <target name="init">
-        <mkdir dir="bin"/>
-        <copy includeemptydirs="false" todir="bin">
-            <fileset dir="src">
-                <exclude name="**/*.launch"/>
-                <exclude name="**/*.java"/>
-            </fileset>
-        </copy>
-    </target>
-    <target name="clean">
-        <delete dir="bin"/>
-    </target>
-    <target depends="clean" name="cleanall"/>
-    <target depends="build-subprojects,build-project" name="build"/>
-    <target name="build-subprojects"/>
-    <target depends="init" name="build-project">
-        <echo message="${ant.project.name}: ${ant.file}"/>
-        <javac debug="true" debuglevel="${debuglevel}" destdir="bin" source="${source}" target="${target}">
-            <src path="src"/>
-            <classpath refid="Java-Voice.classpath"/>
-        </javac>
-    </target>   
+<project name="VoPSI" default="dist" basedir=".">
+    <description>
+        simple example build file
+    </description>
+  <!-- set global properties for this build -->
+  <property name="src" location="src"/>
+  <property name="build" location="build"/>
+  <property name="dist"  location="dist"/>
+
+  <target name="init">
+    <!-- Create the time stamp -->
+    <tstamp/>
+    <!-- Create the build directory structure used by compile -->
+    <mkdir dir="${build}"/>
+  </target>
+
+  <target name="compile" depends="init"
+        description="compile the source " >
+	
+	<property name="lib.dir" value="lib"/>
+
+	    <path id="classpath">
+		<fileset dir="${lib.dir}" includes="**/*.jar"/>
+	    </path>
+
+    <!-- Compile the java code from ${src} into ${build} -->
+    <javac srcdir="${src}" destdir="${build}" classpathref="classpath"/>
+	<copyfile src="${src}/eu/pursuit/vopsi/config" dest="${build}/eu/pursuit/vopsi/config"/>
+  </target>
+
+  <target name="dist" depends="compile"
+        description="generate the distribution" >
+    <!-- Create the distribution directory -->
+    <!--mkdir dir="${dist}/lib"/-->
+
+    <!-- Put everything in ${build} into the MyProject-${DSTAMP}.jar file -->
+    <!--jar jarfile="${dist}/lib/MyProject-${DSTAMP}.jar" basedir="${build}"/-->
+  </target>
+
+
+
+  <target name="clean"
+        description="clean up" >
+    <!-- Delete the ${build} and ${dist} directory trees -->
+    <delete dir="${build}"/>
+    <delete dir="${dist}"/>
+  </target>
 </project>
+

@@ -31,7 +31,7 @@ typedef void (*callbacktype)(Event *);
 /**@brief (User Library) This is the wrapper class that makes the service model available to all applications in a Non-Blocking manner. 
  * 
  * blackadder expects requests to be sent in its netlink socket. Therefore the wrapper class just exports some human-friendly methods for creating service model compliant buffers that are asynchronously sent to blackadder.
- * NB_Blackadder implements the Singleton Pattern. A single NB_Blackadder object can be created by a single process using the <b>public</b> Instance method. The Constructor is <b>private</b>.
+ * NB_Blackadder implements the Singleton Pattern. A single NB_Blackadder object can be created by a single process using the <b>public</b> Instance method. The Constructor is <b>protected</b>.
  * 
  * NB_Blackadder uses two threads. A selector thread reads events when the netlink socket is readable and passes them to the worker thread. 
  * In the context of the worker thread, the callback method that <b>must be provided by the applications</b> is called with a reference to the received Event.
@@ -48,7 +48,7 @@ public:
     ~NB_Blackadder();
     /**@brief the Instance method is the only way to construct a NB_Blackadder object. It is impossible to construct multiple objects since Instance will return the already constructed one.
      * 
-     * Instance will create a new object by calling the private constructor and assign it to the m_pInstance value ONLY the first time it is called. All other times it will return the m_pInstance pointer.
+     * Instance will create a new object by calling the protected constructor and assign it to the m_pInstance value ONLY the first time it is called. All other times it will return the m_pInstance pointer.
      * @param user_space if it is true, the netlink is created so that it can communicate with blackadder running in user space. 
      * if it is false, the netlink is created so that it can communicate with blackadder running in kernel space.
      * @return 
@@ -77,6 +77,8 @@ public:
      * 
      * If id consists of multiple fragments, the request is about republishing an existing information item under an existing scope.
      * 
+     * Implicitly registers to START_PUBLISH and STOP_PUBLISH events for the corresponding information item. START_PUBLISH tells the application that it has at least one subscriber to the corresponding information item and STOP_PUBLISH means that it has no subscribers.
+     *
      * @param id the identifier of an information item. It can be a single fragment with size PURSUIT_ID_LEN or multiple fragments PURSUIT_ID_LEN each.
      * @param prefix_id the identifier of the father scope. It can be a single fragment with size PURSUIT_ID_LEN or multiple fragments PURSUIT_ID_LEN each.
      * @param strategy the dissemination strategy assigned to the request.
@@ -121,6 +123,8 @@ public:
      * If id is a single fragment, the request is about unpublishing a scope.
      * 
      * id CANNOT consist of multiple fragments. 
+     *
+     * Implicitly registers to SCOPE_PUBLISHED and SCOPE_UNPUBLISHED events that provide notifications about new or deleted subscopes, as well as to PUBLISHED_DATA events for all items directly under the scope.
      * 
      * @param id id the identifier of a scope. It can be a single fragment with size PURSUIT_ID_LEN.
      * @param prefix_id prefix_id the identifier of the father scope. It can be an empty string, a single fragment with size PURSUIT_ID_LEN or multiple fragments PURSUIT_ID_LEN each.
@@ -137,7 +141,9 @@ public:
      * If id is a single fragment, the request is about unpublishing a scope.
      * 
      * id CANNOT consist of multiple fragments. 
-     *  
+     *
+     * Implicitly registers to PUBLISHED_DATA events for the corresponding information item.
+     *
      * @param id id the identifier of an information item. It can be a single fragment with size PURSUIT_ID_LEN.
      * @param prefix_id prefix_id the identifier of the father scope. It can be a single fragment with size PURSUIT_ID_LEN or multiple fragments PURSUIT_ID_LEN each.
      * @param strategy the dissemination strategy assigned to the request.
@@ -185,7 +191,7 @@ public:
      * @param data a bucket of data that is published.
      * @param data_len the size of the published data.
      */
-    void publish_data(const string &id, char strategy, void *str_opt, unsigned int str_opt_len, void *data, int data_len);
+    void publish_data(const string &id, char strategy, void *str_opt, unsigned int str_opt_len, void *data, unsigned int data_len);
     /**@brief This method will send a disconnect signal to Blackadder. 
      * 
      * In user space this is required so that Blackadder can then undo all requests the application has previously sent.
@@ -271,12 +277,13 @@ public:
      */
     static callbacktype cf;
 
-private:
+protected:
     /**@brief Constructor: It initiates the netlink socket appropriately. It initiates all mutexes and condition variables and starts the worker and selector threads.
      * 
      * @param user_space
      */
     NB_Blackadder(bool user_space);
+private:
     /**brief push a message in the queue and notify selector thread to send it to blackadder.
      * 
      * @param type as passed by a request method.

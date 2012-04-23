@@ -25,6 +25,7 @@
 #include <fstream>
 
 #include "bitvector.hpp"
+#include "blackadder_defs.h"
 
 using namespace std;
 

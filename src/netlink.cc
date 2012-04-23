@@ -36,7 +36,7 @@ int Netlink::initialize(ErrorHandler *errh) {
     //struct sockaddr_un s_nladdr;
     fd = socket(PF_LOCAL, SOCK_DGRAM, 0);
 #endif
-    fcntl(fd, O_NONBLOCK);
+    //fcntl(fd, O_NONBLOCK);
     /* source address */
     memset(&s_nladdr, 0, sizeof (s_nladdr));
 #if HAVE_USE_NETLINK

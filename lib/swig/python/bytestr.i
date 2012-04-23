@@ -1,5 +1,5 @@
 /*-
- * Copyright (C) 2011  Oy L M Ericsson Ab, NomadicLab
+ * Copyright (C) 2011-2012  Oy L M Ericsson Ab, NomadicLab
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -35,8 +35,8 @@
         if (!SWIG_IsOK(res)) {
             %argument_fail(res, "(void *BYTES, unsigned int LEN)", $symname, $argnum);
         }
-        $1 = ($1_type)buf;
-        $2 = ssize;
+        $1 = (uint8_t *)buf;
+        $2 = ($2_type)ssize;
     }
 }
 

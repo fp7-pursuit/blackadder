@@ -134,7 +134,7 @@ void *NB_Blackadder::selector(void *arg) {
                     pthread_cond_signal(&worker_cond);
                     pthread_mutex_unlock(&worker_mutex);
                 } else {
-                    perror("NB_Blackadder Library: did not read ");
+                    //perror("NB_Blackadder Library: did not read ");
                     /*DO NOT call the callback function*/
                 }
             }
@@ -453,7 +453,7 @@ void NB_Blackadder::push(unsigned char type, const string &id, const string &pre
     pthread_mutex_unlock(&selector_mutex);
 }
 
-void NB_Blackadder::publish_data(const string &id, char strategy, void *str_opt, unsigned int str_opt_len, void *data, int data_len) {
+void NB_Blackadder::publish_data(const string &id, char strategy, void *str_opt, unsigned int str_opt_len, void *data, unsigned int data_len) {
     int ret;
     char *buffer;
     int buffer_length;
@@ -462,6 +462,11 @@ void NB_Blackadder::publish_data(const string &id, char strategy, void *str_opt,
     unsigned char type = PUBLISH_DATA;
     struct iovec *iov = (struct iovec *) calloc(sizeof (struct iovec), 2);
     unsigned char id_len = id.length() / PURSUIT_ID_LEN;
+
+    if (iov == NULL) {
+        perror("calloc iovecs failed");
+        return;
+    }
 
     if (str_opt == NULL) {
         buffer_length = sizeof (struct nlmsghdr) + sizeof (type) + sizeof (id_len) + id.length() + sizeof (strategy);

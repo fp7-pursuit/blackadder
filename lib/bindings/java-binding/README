@@ -16,5 +16,9 @@ subdirectory. See ./lib/install.txt for further instructions.
 
 To compile the Java code, run ant.
 
+In order to produce a Blackadder JAR file, run:
+
+ant dist
+
 For examples of using the Java binding with Blackadder, see example code in
 the test directory.

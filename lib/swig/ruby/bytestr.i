@@ -1,5 +1,5 @@
 /*-
- * Copyright (C) 2011  Oy L M Ericsson Ab, NomadicLab
+ * Copyright (C) 2011-2012  Oy L M Ericsson Ab, NomadicLab
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -23,10 +23,26 @@
         $1 = NULL;
         $2 = 0;
     }
+    else if (TYPE($input) == T_STRING) {
+        $1 = ($1_type)(RSTRING_PTR($input));
+        $2 = ($2_type)(RSTRING_LEN($input));
+    }
+    else if (SWIG_CheckConvert($input, SWIGTYPE_p_Malloc_buffer) != 0) {
+        malloc_buffer_t *mb;
+        int res;
+        res = SWIG_ConvertPtr($input, (void **)&mb,
+                              SWIGTYPE_p_Malloc_buffer, 0);
+        if (!SWIG_IsOK(res)) {
+            %argument_fail(res, "(void *BYTES, unsigned int LEN)",
+                           $symname, $argnum);
+        }
+        $1 = ($1_type)mb->data;
+        $2 = ($2_type)mb->data_len;
+    }
     else {
-        $1 = ($1_type)(RSTRING($input))->ptr;
-        $2 = ($2_type)(RSTRING($input))->len;
-    }    
+        %argument_fail(SWIG_TypeError, "(void *BYTES, unsigned int LEN)",
+                       $symname, $argnum);
+    }
 }
 
 
@@ -37,14 +53,14 @@
         $1 = NULL;
     }
     else {
-        $1 = ($1_type)(RSTRING($input))->ptr;
+        $1 = ($1_type)(RSTRING_PTR($input));
     }
 }
 
 %typemap(memberin) char *BYTE {
     // memberin: char *BYTE
     if ($input)
-        memcpy($1, $input, (RSTRING(res1))->len); /* XXX: res1 */
+        memcpy($1, $input, (RSTRING_LEN(res1))); /* XXX: res1 */
 }
 
 %typemap(out) char *BYTE {

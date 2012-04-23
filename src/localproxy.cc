@@ -197,7 +197,6 @@ LocalHost * LocalProxy::getLocalHost(int type, int id) {
 }
 
 void LocalProxy::disconnect(LocalHost *_localhost) {
-    click_chatter("disconnect");
     /*there is a bug here...I have to rethink how to correctly delete all entries in the right sequence*/
     if (_localhost != NULL) {
         click_chatter("LocalProxy: Entity %s disconnected...cleaning...", _localhost->localHostID.c_str());
@@ -521,34 +520,6 @@ void LocalProxy::pushDataToLocalSubscriber(LocalHost *_localhost, String &ID, Pa
     }
 }
 
-void LocalProxy::pushDataToRemoteSubscribers(ActivePublication *ap, Packet *p) {
-    WritablePacket *newPacket;
-    unsigned char IDLength = 0;
-    int index;
-    unsigned char numberOfIDs;
-    int totalIDsLength = 0;
-    Vector<String>::iterator it;
-    numberOfIDs = (unsigned char) ap->allKnownIDs.size();
-    for (it = ap->allKnownIDs.begin(); it != ap->allKnownIDs.end(); it++) {
-        totalIDsLength = totalIDsLength + (*it).length();
-    }
-    newPacket = p->push(FID_LEN + sizeof (numberOfIDs) /*number of ids*/+((int) numberOfIDs) * sizeof (unsigned char) /*id length*/ +totalIDsLength);
-    //click_chatter("PUBLISHING DATA USING: %s", ap->FID_to_subscribers.to_string().c_str());
-    memcpy(newPacket->data(), ap->FID_to_subscribers._data, FID_LEN);
-    memcpy(newPacket->data() + FID_LEN, &numberOfIDs, sizeof (numberOfIDs));
-    index = 0;
-    it = ap->allKnownIDs.begin();
-    for (int i = 0; i < (int) numberOfIDs; i++) {
-        IDLength = (unsigned char) (*it).length() / PURSUIT_ID_LEN;
-        memcpy(newPacket->data() + FID_LEN + sizeof (numberOfIDs) + index, &IDLength, sizeof (IDLength));
-        memcpy(newPacket->data() + FID_LEN + sizeof (numberOfIDs) + index + sizeof (IDLength), (*it).c_str(), (*it).length());
-        index = index + sizeof (IDLength) + (*it).length();
-        it++;
-    }
-    //click_chatter("pushing data packet of size %d to FID: %s", newPacket->length() ,ap->FID_to_subscribers.to_string().c_str());
-    output(2).push(newPacket);
-}
-
 /*this method is quite different from the one above
 it will forward the data using the provided FID
 Here, we only know about a single ID.We do not care if there are multiple IDs*/
@@ -583,23 +554,14 @@ void LocalProxy::handleNetworkPublication(Vector<String> &IDs, Packet *p /*the p
     int counter = 1;
     //click_chatter("received data for ID: %s", IDs[0].quoted_hex().c_str());
     bool foundLocalSubscribers = findLocalSubscribers(IDs, localSubscribers);
-    //click_chatter("/*that's a special case written for hotnets fragmentation paper - I will subscribe locally on behalf of all local subscribers*/");
     int localSubscribersSize = localSubscribers.size();
     if (foundLocalSubscribers) {
         for (LocalHostStringHashMapIter localSubscribers_it = localSubscribers.begin(); localSubscribers_it != localSubscribers.end(); localSubscribers_it++) {
-            LocalHost *_localhost = (*localSubscribers_it).first;
-            BABitvector RVFID = BABitvector(FID_LEN * 8);
-            /*if it does not exist add it*/
-            ActiveSubscription *as = activeSubscriptionIndex.get((*localSubscribers_it).second);
-            if (as == activeSubscriptionIndex.default_value()) {
-                //click_chatter("/*for hotnets paper*/");
-                storeActiveSubscription(_localhost, (*localSubscribers_it).second, IMPLICIT_RENDEZVOUS, RVFID, false);
-            }
             if (counter == localSubscribersSize) {
                 /*don't clone the packet since this is the last subscriber*/
-                pushDataToLocalSubscriber(_localhost, (*localSubscribers_it).second, p);
+                pushDataToLocalSubscriber((*localSubscribers_it).first, (*localSubscribers_it).second, p);
             } else {
-                pushDataToLocalSubscriber(_localhost, (*localSubscribers_it).second, p->clone()->uniqueify());
+                pushDataToLocalSubscriber((*localSubscribers_it).first, (*localSubscribers_it).second, p->clone()->uniqueify());
             }
             counter++;
         }
@@ -612,58 +574,67 @@ void LocalProxy::handleUserPublication(String &ID, Packet *p /*the packet has so
     int localSubscribersSize;
     int counter = 1;
     bool remoteSubscribersExist = true;
+    bool useFatherFID = false;
+    Vector<String> IDs;
     LocalHostStringHashMap localSubscribers;
     ActivePublication *ap = activePublicationIndex.get(ID);
+    if (ap == activePublicationIndex.default_value()) {
+        /*check a FID is assigned to the father item - used for fragmentation*/
+        ap = activePublicationIndex.get(ID.substring(0, ID.length() - PURSUIT_ID_LEN));
+        useFatherFID = true;
+        IDs.push_back(ID);
+    }
     if (ap != activePublicationIndex.default_value()) {
         if ((ap->FID_to_subscribers.zero()) || (ap->FID_to_subscribers == gc->iLID)) {
             remoteSubscribersExist = false;
         }
         /*I have to find any subscribers that exist locally*/
-        /*Careful: I will use all known IDs of the aiip and check for each one (findLocalSubscribers() does that)*/
-        bool foundLocalSubscribers = findLocalSubscribers(ap->allKnownIDs, localSubscribers);
+        /*Careful: I will use all known IDs of the ap and check for each one (findLocalSubscribers() does that)*/
+        if (useFatherFID == true) {
+            findLocalSubscribers(IDs, localSubscribers);
+        } else {
+            findLocalSubscribers(ap->allKnownIDs, localSubscribers);
+        }
         localSubscribers.erase(__localhost);
         localSubscribersSize = localSubscribers.size();
-        if (foundLocalSubscribers) {
-            for (LocalHostStringHashMapIter localSubscribers_it = localSubscribers.begin(); localSubscribers_it != localSubscribers.end(); localSubscribers_it++) {
-                LocalHost *_localhost = (*localSubscribers_it).first;
-                BABitvector RVFID = BABitvector(FID_LEN * 8);
-                /*if it does not exist add it*/
-                ActiveSubscription *as = activeSubscriptionIndex.get((*localSubscribers_it).second);
-                if (as == activeSubscriptionIndex.default_value()) {
-                    //click_chatter("/*for hotnets paper*/");
-                    storeActiveSubscription(_localhost, (*localSubscribers_it).second, IMPLICIT_RENDEZVOUS, RVFID, false);
-                }
-            }
-        }
+
         /*Now I know if I should send the packet to the Network and how many local subscribers exist*/
         /*I should be able to minimise packet copy*/
         if ((localSubscribersSize == 0) && (!remoteSubscribersExist)) {
             p->kill();
         } else if ((localSubscribersSize == 0) && (remoteSubscribersExist)) {
             /*no need to clone..packet will be sent only to the network*/
-            pushDataToRemoteSubscribers(ap, p);
+            if (useFatherFID == true) {
+                pushDataToRemoteSubscribers(IDs, ap->FID_to_subscribers, p);
+            } else {
+                pushDataToRemoteSubscribers(ap->allKnownIDs, ap->FID_to_subscribers, p);
+            }
         } else if ((localSubscribersSize > 0) && (!remoteSubscribersExist)) {
             /*only local subscribers exist*/
             for (LocalHostStringHashMapIter localSubscribers_it = localSubscribers.begin(); localSubscribers_it != localSubscribers.end(); localSubscribers_it++) {
                 LocalHost *_localhost = (*localSubscribers_it).first;
                 if (counter == localSubscribersSize) {
                     /*don't clone the packet since this is the last subscriber*/
-                    pushDataToLocalSubscriber(_localhost, (*localSubscribers_it).second, p);
+                    pushDataToLocalSubscriber(_localhost, ID, p);
                 } else {
-                    pushDataToLocalSubscriber(_localhost, (*localSubscribers_it).second, p->clone()->uniqueify());
+                    pushDataToLocalSubscriber(_localhost, ID, p->clone()->uniqueify());
                 }
                 counter++;
             }
         } else {
             /*local and remote subscribers exist*/
-            pushDataToRemoteSubscribers(ap, p->clone()->uniqueify());
+            if (useFatherFID == true) {
+                pushDataToRemoteSubscribers(IDs, ap->FID_to_subscribers, p->clone()->uniqueify());
+            } else {
+                pushDataToRemoteSubscribers(ap->allKnownIDs, ap->FID_to_subscribers, p->clone()->uniqueify());
+            }
             for (LocalHostStringHashMapIter localSubscribers_it = localSubscribers.begin(); localSubscribers_it != localSubscribers.end(); localSubscribers_it++) {
                 LocalHost *_localhost = (*localSubscribers_it).first;
                 if (counter == localSubscribersSize) {
                     /*don't clone the packet since this is the last subscriber*/
-                    pushDataToLocalSubscriber(_localhost, (*localSubscribers_it).second, p);
+                    pushDataToLocalSubscriber(_localhost, ID, p);
                 } else {
-                    pushDataToLocalSubscriber(_localhost, (*localSubscribers_it).second, p->clone()->uniqueify());
+                    pushDataToLocalSubscriber(_localhost, ID, p->clone()->uniqueify());
                 }
                 counter++;
             }
@@ -682,50 +653,20 @@ void LocalProxy::handleUserPublication(String &ID, BABitvector &FID_to_subscribe
     LocalHostStringHashMap localSubscribers;
     Vector<String> IDs;
     ActivePublication *ap = activePublicationIndex.get(ID.substring(0, ID.length() - PURSUIT_ID_LEN));
-    if (FID_to_subscribers.zero()) {
-        //click_chatter("/*that's a special case written for hotnets fragmentation paper*/");
-        /*I will check if there is a father active publication with an assigned FID and use that instead*/
-        if (ap != activePublicationIndex.default_value()) {
-            FID_to_subscribers = ap->FID_to_subscribers;
-            //click_chatter("FID_to_subscribers: %s", FID_to_subscribers.to_string().c_str());
-            /*i will augment the IDs vector using my father publication*/
-            for (int i = 0; i < ap->allKnownIDs.size(); i++) {
-                String knownID = ap->allKnownIDs[i] + ID.substring(ID.length() - PURSUIT_ID_LEN, PURSUIT_ID_LEN);
-                //click_chatter("knownID: %s", knownID.quoted_hex().c_str());
-                if (knownID.compare(ID) != 0) {
-                    /*I will add the original ID afterwards*/
-                    IDs.push_back(knownID);
-                }
-            }
-        }
-    } else {
-        /*i will augment the IDs vector using my father publication*/
-        if (ap != activePublicationIndex.default_value()) {
-            for (int i = 0; i < ap->allKnownIDs.size(); i++) {
-                String knownID = ap->allKnownIDs[i] + ID.substring(ID.length() - PURSUIT_ID_LEN, PURSUIT_ID_LEN);
-                if (knownID.compare(ID) != 0) {
-                    IDs.push_back(knownID);
-                }
+    /*i will augment the IDs vector using my father publication*/
+    if (ap != activePublicationIndex.default_value()) {
+        for (int i = 0; i < ap->allKnownIDs.size(); i++) {
+            String knownID = ap->allKnownIDs[i] + ID.substring(ID.length() - PURSUIT_ID_LEN, PURSUIT_ID_LEN);
+            if (knownID.compare(ID) != 0) {
+                IDs.push_back(knownID);
             }
         }
     }
     IDs.push_back(ID);
     /*I have to find any subscribers that exist locally*/
-    bool foundLocalSubscribers = findLocalSubscribers(IDs, localSubscribers);
+    findLocalSubscribers(IDs, localSubscribers);
     localSubscribers.erase(__localhost);
     localSubscribersSize = localSubscribers.size();
-    if (foundLocalSubscribers) {
-        for (LocalHostStringHashMapIter localSubscribers_it = localSubscribers.begin(); localSubscribers_it != localSubscribers.end(); localSubscribers_it++) {
-            LocalHost *_localhost = (*localSubscribers_it).first;
-            BABitvector RVFID = BABitvector(FID_LEN * 8);
-            /*if it does not exist add it*/
-            ActiveSubscription *as = activeSubscriptionIndex.get((*localSubscribers_it).second);
-            if (as == activeSubscriptionIndex.default_value()) {
-                //click_chatter("/*for hotnets paper*/");
-                storeActiveSubscription(_localhost, (*localSubscribers_it).second, IMPLICIT_RENDEZVOUS, RVFID, false);
-            }
-        }
-    }
     if (localSubscribersSize == 0) {
         /*no need to clone..packet will be sent only to the network*/
         pushDataToRemoteSubscribers(IDs, FID_to_subscribers, p);
@@ -736,9 +677,9 @@ void LocalProxy::handleUserPublication(String &ID, BABitvector &FID_to_subscribe
             LocalHost *_localhost = (*localSubscribers_it).first;
             if (counter == localSubscribersSize) {
                 //click_chatter("/*don't clone the packet since this is the last subscriber*/");
-                pushDataToLocalSubscriber(_localhost, (*localSubscribers_it).second, p);
+                pushDataToLocalSubscriber(_localhost, ID, p);
             } else {
-                pushDataToLocalSubscriber(_localhost, (*localSubscribers_it).second, p->clone()->uniqueify());
+                pushDataToLocalSubscriber(_localhost, ID, p->clone()->uniqueify());
             }
             counter++;
         }

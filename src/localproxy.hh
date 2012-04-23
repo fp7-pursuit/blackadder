@@ -234,14 +234,6 @@ public:
      * @param p A Click packet containing ONLY some headroom and the DATA to be published.
      */
     void pushDataToLocalSubscriber(LocalHost *_localhost, String &ID, Packet *p);
-    /** It pushes a publication to the network.
-     * 
-     * This method will find the LIPSIN identifier using the provided ActivePublication. Note that all identifiers currently stored in the ActivePublication will be copied in the packet.
-     * 
-     * @param aiip the ActivePublication that is being published remotely.
-     * @param p A Click packet containing ONLY some headroom and the DATA to be published.
-     */
-    void pushDataToRemoteSubscribers(ActivePublication *aiip, Packet *p);
     /**@brief This method is similar to the previous one. It is called when the IMPLICIT_RENDEZVOUS strategy is used.
      * 
      * The LocalProxy will use the provided FID_to_subscribers to forward the packet to the network.
