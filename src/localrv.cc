@@ -23,13 +23,13 @@ LocalRV::~LocalRV() {
     click_chatter("LocalRV: destroyed!");
 }
 
-int LocalRV::configure(Vector<String> &conf, ErrorHandler *errh) {
+int LocalRV::configure(Vector<String> &conf, ErrorHandler */*errh*/) {
     gc = (GlobalConf *) cp_element(conf[0], this);
     //click_chatter("LocalRV: configured!");
     return 0;
 }
 
-int LocalRV::initialize(ErrorHandler *errh) {
+int LocalRV::initialize(ErrorHandler */*errh*/) {
     unsigned char type = SUBSCRIBE_SCOPE;
     unsigned char strategy = IMPLICIT_RENDEZVOUS;
     unsigned char id_len = PURSUIT_ID_LEN / PURSUIT_ID_LEN;
@@ -47,7 +47,7 @@ int LocalRV::initialize(ErrorHandler *errh) {
     return 0;
 }
 
-void LocalRV::cleanup(CleanupStage stage) {
+void LocalRV::cleanup(CleanupStage /*stage*/) {
     int size;
     size = pub_sub_Index.size();
     RemoteHostHashMapIter it1 = pub_sub_Index.begin();

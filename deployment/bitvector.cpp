@@ -17,7 +17,7 @@
 #include "bitvector.hpp"
 
 Bitvector::Bitvector(string &x) {
-    int i = 0;
+    unsigned int i = 0;
     _data = new uint32_t[x.length()];
     _max = x.length() - 1;
     memset(_data, 0, x.length());

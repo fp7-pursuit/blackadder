@@ -12,29 +12,38 @@
  * See LICENSE and COPYING for more details.
  */
 #include "netlink.hh"
+#if !CLICK_LINUXMODULE && !CLICK_BSDMODULE
+#include <fcntl.h>
 #include <unistd.h>
-#if !CLICK_LINUXMODULE
-#include "fcntl.h"
 #endif
 
 CLICK_DECLS
 
+#if CLICK_LINUXMODULE
+Netlink::Netlink() : nl_sk(NULL) {
+}
+#else
 Netlink::Netlink() {
 }
+#endif
 
 Netlink::~Netlink() {
     click_chatter("Netlink: destroyed!");
 }
 
-int Netlink::initialize(ErrorHandler *errh) {
-#if !CLICK_LINUXMODULE
+int Netlink::initialize(ErrorHandler */*errh*/) {
+#if !CLICK_LINUXMODULE && !CLICK_BSDMODULE
     int ret;
 #if HAVE_USE_NETLINK
     struct sockaddr_nl s_nladdr;
     fd = socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC);
-#else
-    //struct sockaddr_un s_nladdr;
+#elif HAVE_USE_UNIX
     fd = socket(PF_LOCAL, SOCK_DGRAM, 0);
+# ifdef __APPLE__
+    int bufsize = 229376; /* XXX */
+    setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &bufsize, sizeof(bufsize));
+    setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &bufsize, sizeof(bufsize));
+# endif
 #endif
     //fcntl(fd, O_NONBLOCK);
     /* source address */
@@ -44,23 +53,25 @@ int Netlink::initialize(ErrorHandler *errh) {
     s_nladdr.nl_pad = 0;
     s_nladdr.nl_pid = 9999;
     ret = bind(fd, (struct sockaddr*) &s_nladdr, sizeof (s_nladdr));
-#else	
+#elif HAVE_USE_UNIX
+# ifndef __linux__
     s_nladdr.sun_len = sizeof (s_nladdr);
+# endif
     s_nladdr.sun_family = PF_LOCAL;
     ba_id2path(s_nladdr.sun_path, 9999); /* XXX */
     if (unlink(s_nladdr.sun_path) != 0 && errno != ENOENT)
         perror("unlink");
-    //int bufsize = 233016; /* XXX */
-    //setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &bufsize, sizeof(bufsize));
-    //setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &bufsize, sizeof(bufsize));
+# ifdef __linux__
+    ret = bind(fd, (struct sockaddr *) &s_nladdr, sizeof(s_nladdr));
+# else
     ret = bind(fd, (struct sockaddr *) &s_nladdr, SUN_LEN(&s_nladdr));
+# endif
 #endif
     if (ret == -1) {
         perror("bind: ");
         return -1;
     }
-#endif
-    //click_chatter("Netlink: initialized!");
+#endif /* !CLICK_LINUXMODULE && !CLICK_BSDMODULE */
     return 0;
 }
 
@@ -68,14 +79,17 @@ void Netlink::cleanup(CleanupStage stage) {
     if (stage >= CLEANUP_INITIALIZED) {
 #if CLICK_LINUXMODULE
         /*release the socket*/
-#if LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 24)
-        sock_release(nl_sk->sk_socket);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
+        if (nl_sk != NULL)
+            sock_release(nl_sk->sk_socket);
 #else
         netlink_kernel_release(nl_sk);
 #endif
+#elif CLICK_BSDMODULE
+        ba_socket_cleanup();
 #else
         close(fd);
-#if !HAVE_USE_NETLINK
+#if HAVE_USE_UNIX
         unlink(s_nladdr.sun_path);
 #endif
 #endif

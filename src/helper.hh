@@ -69,4 +69,6 @@
 /**********************************/
 #define RV_ELEMENT 1 //put the correct click port here
 
+#define NETLINK_BADDER 30 // see linux/netlink.h
+
 #endif

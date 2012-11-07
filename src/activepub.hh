@@ -23,7 +23,7 @@ CLICK_DECLS
 class LocalHost;
 
 /**
- * @brief (blackadder Core) ActivePublication represents an active publication of an application or click element or another Linux module.
+ * @brief (Blackadder Core) ActivePublication represents an active publication of an application or click element or another Linux module.
  
  * It can be either a scope or an information item. The LocalProxy only handles active publications.
  */
@@ -76,7 +76,7 @@ public:
 };
 
 /**
- * @brief (blackadder Core) ActiveSubscription represents an active subscription of an application or click element or another Linux module.
+ * @brief (Blackadder Core) ActiveSubscription represents an active subscription of an application or click element or another Linux module.
  * 
  * It can be either a scope or an information item. The LocalProxy only handles active subscriptions.
  */

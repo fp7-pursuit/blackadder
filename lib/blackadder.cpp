@@ -14,6 +14,11 @@
 
 #include "blackadder.hpp"
 
+#ifdef __FreeBSD__
+#include <sys/event.h>
+static int kq = 0;
+#endif
+
 Blackadder* Blackadder::m_pInstance = NULL;
 
 Blackadder::Blackadder(bool user_space) {
@@ -22,13 +27,18 @@ Blackadder::Blackadder(bool user_space) {
     if (user_space) {
 #if HAVE_USE_NETLINK
         sock_fd = socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC);
-#else	
+#elif HAVE_USE_UNIX
         sock_fd = socket(PF_LOCAL, SOCK_DGRAM, 0);
+#else
+        sock_fd = -1;
+        errno = EPFNOSUPPORT; /* XXX */
 #endif
     } else {
 #if HAVE_USE_NETLINK
         sock_fd = socket(AF_NETLINK, SOCK_RAW, NETLINK_BADDER);
-#else	
+#elif __FreeBSD__ /* XXX */
+        sock_fd = socket(AF_BLACKADDER, SOCK_RAW, PROTO_BLACKADDER);
+#else
         sock_fd = -1;
         errno = EPFNOSUPPORT; /* XXX */
 #endif
@@ -36,6 +46,22 @@ Blackadder::Blackadder(bool user_space) {
     if (sock_fd < 0) {
         perror("socket");
     }
+#ifdef __APPLE__
+    int bufsize = 229376; /* XXX */
+    setsockopt(sock_fd, SOL_SOCKET, SO_SNDBUF, &bufsize, sizeof(bufsize));
+    setsockopt(sock_fd, SOL_SOCKET, SO_RCVBUF, &bufsize, sizeof(bufsize));
+#endif
+#ifdef __FreeBSD__
+    kq = kqueue();
+    if (kq < 0) {
+        perror("kqueue");
+    }
+    struct kevent kev;
+    EV_SET(&kev, sock_fd, EVFILT_READ, EV_ADD | EV_CLEAR, 0x0, 0, NULL);
+    if (kevent(kq, &kev, 1, NULL, 0, NULL)) {
+        perror("kevent");
+    }
+#endif
     /* source netlink address */
     memset(&s_nladdr, 0, sizeof (s_nladdr));
 #if HAVE_USE_NETLINK
@@ -43,14 +69,29 @@ Blackadder::Blackadder(bool user_space) {
     s_nladdr.nl_pad = 0;
     s_nladdr.nl_pid = getpid();
     ret = bind(sock_fd, (struct sockaddr *) &s_nladdr, sizeof (s_nladdr));
-#else
-    s_nladdr.sun_len = sizeof (s_nladdr);
-    s_nladdr.sun_family = PF_LOCAL;
-    /* XXX: Probably shouldn't use getpid() here. */
-    ba_id2path(s_nladdr.sun_path, getpid());
-    if (unlink(s_nladdr.sun_path) != 0 && errno != ENOENT)
-        perror("unlink");
-    ret = bind(sock_fd, (struct sockaddr *) &s_nladdr, SUN_LEN(&s_nladdr));
+#elif HAVE_USE_UNIX
+    if (user_space) {
+# ifndef __linux__
+        s_nladdr.sun_len = sizeof (s_nladdr);
+# endif
+        s_nladdr.sun_family = PF_LOCAL;
+        /* XXX: Probably shouldn't use getpid() here. */
+        ba_id2path(s_nladdr.sun_path, getpid());
+        if (unlink(s_nladdr.sun_path) != 0 && errno != ENOENT)
+            perror("unlink");
+# ifdef __linux__
+        ret = bind(sock_fd, (struct sockaddr *) &s_nladdr, sizeof(s_nladdr));
+# else
+        ret = bind(sock_fd, (struct sockaddr *) &s_nladdr, SUN_LEN(&s_nladdr));
+# endif
+    } else {
+        if (sock_fd > 0)
+            ret = 0;
+        else {
+            ret = -1;
+            errno = EBADF;
+        }
+    }
 #endif
     if (ret < 0) {
         perror("bind");
@@ -66,18 +107,25 @@ Blackadder::Blackadder(bool user_space) {
     } else {
         d_nladdr.nl_pid = 0; /* destined to kernel */
     }
-#else
-    d_nladdr.sun_len = sizeof (d_nladdr);
-    d_nladdr.sun_family = PF_LOCAL;
-    ba_id2path(d_nladdr.sun_path, (user_space) ? 9999 : 0); /* XXX */
+#elif HAVE_USE_UNIX
+    if (user_space) {
+# ifndef __linux__
+        d_nladdr.sun_len = sizeof (d_nladdr);
+# endif
+        d_nladdr.sun_family = PF_LOCAL;
+        ba_id2path(d_nladdr.sun_path, (user_space) ? 9999 : 0); /* XXX */
+    }
 #endif
 }
 
 Blackadder::~Blackadder() {
     if (sock_fd != -1) {
         close(sock_fd);
-#if !HAVE_USE_NETLINK
+#if HAVE_USE_UNIX
         unlink(s_nladdr.sun_path);
+#endif
+#ifdef __FreeBSD__
+        close(kq);
 #endif
     }
     cout << "Blackadder Library: Deleted Blackadder Object" << endl;
@@ -93,27 +141,23 @@ Blackadder* Blackadder::Instance(bool user_space) {
 int Blackadder::create_and_send_buffers(unsigned char type, const string &id, const string &prefix_id, char strategy, void *str_opt, unsigned int str_opt_len) {
     int ret;
     struct msghdr msg;
-    struct iovec *iov;
+    struct iovec iov[8];
     unsigned char id_len = id.length() / PURSUIT_ID_LEN;
     unsigned char prefix_id_len = prefix_id.length() / PURSUIT_ID_LEN;
-    struct nlmsghdr *nlh = (struct nlmsghdr *) malloc(sizeof (struct nlmsghdr));
-    if (str_opt == NULL) {
-        iov = (struct iovec *) calloc(sizeof (struct iovec), 7);
-        /* Fill the netlink message header */
-        nlh->nlmsg_len = sizeof (struct nlmsghdr) + 1 /*type*/ + 1 /*for id length*/ + id.length() + 1 /*for prefix_id length*/ + prefix_id.length() + 1 /*strategy*/;
-        nlh->nlmsg_pid = getpid();
-        nlh->nlmsg_flags = 1;
-        nlh->nlmsg_type = 0;
-    } else {
-        iov = (struct iovec *) calloc(sizeof (struct iovec), 8);
-        /* Fill the netlink message header */
-        nlh->nlmsg_len = sizeof (struct nlmsghdr) + 1 /*type*/ + 1 /*for id length*/ + id.length() + 1 /*for prefix_id length*/ + prefix_id.length() + 1 /*strategy*/ + str_opt_len;
-        nlh->nlmsg_pid = getpid();
-        nlh->nlmsg_flags = 1;
-        nlh->nlmsg_type = 0;
+    struct nlmsghdr _nlh, *nlh = &_nlh;
+    memset(&msg, 0, sizeof(msg));
+    memset(iov, 0, sizeof(iov));
+    memset(nlh, 0, sizeof(*nlh));
+    /* Fill the netlink message header */
+    nlh->nlmsg_len = sizeof (struct nlmsghdr) + 1 /*type*/ + 1 /*for id length*/ + id.length() + 1 /*for prefix_id length*/ + prefix_id.length() + 1 /*strategy*/;
+    if (str_opt != NULL) {
+        nlh->nlmsg_len += str_opt_len;
     }
+    nlh->nlmsg_pid = getpid();
+    nlh->nlmsg_flags = 1;
+    nlh->nlmsg_type = 0;
     iov[0].iov_base = nlh;
-    iov[0].iov_len = sizeof (struct nlmsghdr);
+    iov[0].iov_len = sizeof (*nlh);
     iov[1].iov_base = &type;
     iov[1].iov_len = sizeof (type);
     iov[2].iov_base = &id_len;
@@ -126,25 +170,15 @@ int Blackadder::create_and_send_buffers(unsigned char type, const string &id, co
     iov[5].iov_len = prefix_id.length();
     iov[6].iov_base = &strategy;
     iov[6].iov_len = sizeof (strategy);
-    if (str_opt == NULL) {
-        memset(&msg, 0, sizeof (msg));
-        msg.msg_name = (void *) &d_nladdr;
-        msg.msg_namelen = sizeof (d_nladdr);
-        msg.msg_iov = iov;
-        msg.msg_iovlen = 7;
-        ret = sendmsg(sock_fd, &msg, 0);
-    } else {
+    if (str_opt != NULL) {
         iov[7].iov_base = (void *) str_opt;
         iov[7].iov_len = str_opt_len;
-        memset(&msg, 0, sizeof (msg));
-        msg.msg_name = (void *) &d_nladdr;
-        msg.msg_namelen = sizeof (d_nladdr);
-        msg.msg_iov = iov;
-        msg.msg_iovlen = 8;
-        ret = sendmsg(sock_fd, &msg, 0);
     }
-    free(iov);
-    free(nlh);
+    msg.msg_name = (void *) &d_nladdr;
+    msg.msg_namelen = sizeof (d_nladdr);
+    msg.msg_iov = iov;
+    msg.msg_iovlen = (str_opt == NULL) ? 7 : 8;
+    ret = sendmsg(sock_fd, &msg, 0);
     return ret;
 }
 
@@ -156,20 +190,21 @@ void Blackadder::disconnect() {
 
     int ret;
     struct msghdr msg;
-    struct iovec *iov;
-    struct nlmsghdr *nlh = (struct nlmsghdr *) malloc(sizeof (struct nlmsghdr));
+    struct iovec iov[2];
+    struct nlmsghdr _nlh, *nlh = &_nlh;
+    memset(&msg, 0, sizeof(msg));
+    memset(iov, 0, sizeof(iov));
+    memset(nlh, 0, sizeof(*nlh));
     unsigned char type = DISCONNECT;
     /* Fill the netlink message header */
     nlh->nlmsg_len = sizeof (struct nlmsghdr) + 1 /*type*/;
     nlh->nlmsg_pid = getpid();
     nlh->nlmsg_flags = 1;
     nlh->nlmsg_type = 0;
-    iov = new iovec[2];
     iov[0].iov_base = nlh;
-    iov[0].iov_len = sizeof (struct nlmsghdr);
+    iov[0].iov_len = sizeof (*nlh);
     iov[1].iov_base = &type;
     iov[1].iov_len = sizeof (type);
-    memset(&msg, 0, sizeof (msg));
     msg.msg_name = (void *) &d_nladdr;
     msg.msg_namelen = sizeof (d_nladdr);
     msg.msg_iov = iov;
@@ -178,10 +213,8 @@ void Blackadder::disconnect() {
     if (ret < 0) {
         perror("Blackadder Library: Failed to send disconnection message");
     }
-    free(nlh);
-    delete [] iov;
     close(sock_fd);
-#if !HAVE_USE_NETLINK
+#if HAVE_USE_UNIX
     unlink(s_nladdr.sun_path);
 #endif
     cout << "Closed netlink socket" << endl;
@@ -339,30 +372,27 @@ void Blackadder::unsubscribe_info(const string&id, const string&prefix_id, unsig
 void Blackadder::publish_data(const string&id, unsigned char strategy, void *str_opt, unsigned int str_opt_len, void *data, unsigned int data_len) {
     int ret;
     struct msghdr msg;
-    struct iovec *iov;
+    struct iovec iov[7];
+    memset(&msg, 0, sizeof(msg));
+    memset(iov, 0, sizeof(iov));
     if (id.length() % PURSUIT_ID_LEN != 0) {
         cout << "Blackadder Library: Could not send  - wrong ID size" << endl;
     } else {
         unsigned char type = PUBLISH_DATA;
         unsigned char id_len = id.length() / PURSUIT_ID_LEN;
-        struct nlmsghdr *nlh = (struct nlmsghdr *) malloc(sizeof (struct nlmsghdr));
-        if (str_opt == NULL) {
-            /* Fill the netlink message header */
-            nlh->nlmsg_len = sizeof (struct nlmsghdr) + 1 /*type*/ + 1 /*for id length*/ + id.length() + sizeof (strategy) + data_len;
-            nlh->nlmsg_pid = getpid();
-            nlh->nlmsg_flags = 1;
-            nlh->nlmsg_type = 0;
-            iov = (struct iovec *) calloc(sizeof (struct iovec), 6);
-        } else {
-            /* Fill the netlink message header */
-            nlh->nlmsg_len = sizeof (struct nlmsghdr) + 1 /*type*/ + 1 /*for id length*/ + id.length() + sizeof (strategy) + str_opt_len + data_len;
-            nlh->nlmsg_pid = getpid();
-            nlh->nlmsg_flags = 1;
-            nlh->nlmsg_type = 0;
-            iov = (struct iovec *) calloc(sizeof (struct iovec), 7);
+        struct nlmsghdr _nlh, *nlh = &_nlh;
+        memset(nlh, 0, sizeof(*nlh));
+        /* Fill the netlink message header */
+        nlh->nlmsg_len = sizeof (struct nlmsghdr) + 1 /*type*/ + 1 /*for id length*/ + id.length() + sizeof (strategy);
+        if (str_opt != NULL) {
+            nlh->nlmsg_len += str_opt_len;
         }
+        nlh->nlmsg_len += data_len;
+        nlh->nlmsg_pid = getpid();
+        nlh->nlmsg_flags = 1;
+        nlh->nlmsg_type = 0;
         iov[0].iov_base = nlh;
-        iov[0].iov_len = sizeof (struct nlmsghdr);
+        iov[0].iov_len = sizeof (*nlh);
         iov[1].iov_base = &type;
         iov[1].iov_len = sizeof (type);
         iov[2].iov_base = &id_len;
@@ -370,59 +400,75 @@ void Blackadder::publish_data(const string&id, unsigned char strategy, void *str
         iov[3].iov_base = (void *) id.c_str();
         iov[3].iov_len = id.length();
         iov[4].iov_base = (void *) &strategy;
-        iov[4].iov_len = sizeof (unsigned char);
+        iov[4].iov_len = sizeof (strategy);
         if (str_opt == NULL) {
             iov[5].iov_base = (void *) data;
             iov[5].iov_len = data_len;
-            memset(&msg, 0, sizeof (msg));
-            msg.msg_name = (void *) &d_nladdr;
-            msg.msg_namelen = sizeof (d_nladdr);
-            msg.msg_iov = iov;
-            msg.msg_iovlen = 6;
-            ret = sendmsg(sock_fd, &msg, 0);
+            iov[6].iov_base = NULL;
+            iov[6].iov_len = 0;
         } else {
             iov[5].iov_base = (void *) str_opt;
             iov[5].iov_len = str_opt_len;
             iov[6].iov_base = (void *) data;
             iov[6].iov_len = data_len;
-            memset(&msg, 0, sizeof (msg));
-            msg.msg_name = (void *) &d_nladdr;
-            msg.msg_namelen = sizeof (d_nladdr);
-            msg.msg_iov = iov;
-            msg.msg_iovlen = 7;
-            ret = sendmsg(sock_fd, &msg, 0);
+        }
+        msg.msg_name = (void *) &d_nladdr;
+        msg.msg_namelen = sizeof (d_nladdr);
+        msg.msg_iov = iov;
+        msg.msg_iovlen = (str_opt == NULL) ? 6 : 7;
+        ret = sendmsg(sock_fd, &msg, 0);
         }
         if (ret < 0) {
             perror("Blackadder Library: Failed to publish data ");
         }
-        free(nlh);
-        free(iov);
-    }
+}
+
+void Blackadder::getEvent(Event &ev) {
+    return getEventIntoBuf(ev, NULL, 0);
 }
 
 /*the event object should be already allocated*/
-void Blackadder::getEvent(Event &ev) {
+void Blackadder::getEventIntoBuf(Event &ev, void *data, unsigned int data_len) {
     int total_buf_size = 0;
     int bytes_read;
     unsigned char id_len;
     struct msghdr msg;
     struct iovec iov;
+    unsigned char *ptr = NULL;
     memset(&msg, 0, sizeof (msg));
     msg.msg_iov = &iov;
     msg.msg_iovlen = 1;
     iov.iov_base = fake_buf;
     iov.iov_len = 1;
-#if HAVE_USE_NETLINK
+#ifdef __linux__
     total_buf_size = recvmsg(sock_fd, &msg, MSG_PEEK | MSG_TRUNC);
 #else
-    if (recvmsg(sock_fd, &msg, MSG_PEEK) < 0 || ioctl(sock_fd, FIONREAD, &total_buf_size) < 0) {
+# ifdef __APPLE__
+    socklen_t _option_len = sizeof(total_buf_size);
+    if (recvmsg(sock_fd, &msg, MSG_PEEK) < 0 || getsockopt(sock_fd, SOL_SOCKET, SO_NREAD, &total_buf_size, &_option_len) < 0)
+# elif defined(__FreeBSD__)
+    struct kevent kev;
+    if (kevent(kq, NULL, 0, &kev, 1, NULL) < 0 || (total_buf_size = kev.data/*XXX*/) < 0)
+# else
+    if (recvmsg(sock_fd, &msg, MSG_PEEK) < 0 || ioctl(sock_fd, FIONREAD, &total_buf_size) < 0)
+# endif
+    {
         cout << "recvmsg/ioctl: " << errno << endl;
         total_buf_size = -1;
     }
 #endif
     if (total_buf_size > 0) {
-        iov.iov_base = malloc(total_buf_size);
-        iov.iov_len = total_buf_size;
+        if (data == NULL) {
+            iov.iov_base = malloc(total_buf_size);
+            if (!iov.iov_base) {
+                ev.type = UNDEF_EVENT;
+                return;
+            }
+            iov.iov_len = total_buf_size;
+        } else {
+            iov.iov_base = data;
+            iov.iov_len = data_len;
+        }
         bytes_read = recvmsg(sock_fd, &msg, 0);
         if (bytes_read < 0) {
             //perror("recvmsg for data");
@@ -430,13 +476,21 @@ void Blackadder::getEvent(Event &ev) {
             ev.type = UNDEF_EVENT;
             return;
         }
+        if (bytes_read < sizeof(struct nlmsghdr)) {
+            cout << "read " << bytes_read << " bytes, not enough" << endl;
+            free(iov.iov_base);
+            ev.type = UNDEF_EVENT;
+            return;
+        }
         ev.buffer = iov.iov_base;
-        ev.type = *((char *) ev.buffer + sizeof (struct nlmsghdr));
-        id_len = *((char *) ev.buffer + sizeof (struct nlmsghdr) + sizeof (unsigned char));
-        ev.id = string((char *) ev.buffer + sizeof (struct nlmsghdr) + sizeof (unsigned char) + sizeof (unsigned char), ((int) id_len) * PURSUIT_ID_LEN);
+        ptr = (unsigned char *)ev.buffer + sizeof(struct nlmsghdr);
+        ev.type = *ptr; ptr += sizeof(ev.type);
+        id_len  = *ptr; ptr += sizeof(id_len);
+        ev.id = string((char *)ptr, ((int)id_len) * PURSUIT_ID_LEN);
+        ptr += ((int)id_len) * PURSUIT_ID_LEN;
         if (ev.type == PUBLISHED_DATA) {
-            ev.data = (char *) ev.buffer + sizeof (struct nlmsghdr) + sizeof (unsigned char) + sizeof (unsigned char) + ((int) id_len) * PURSUIT_ID_LEN;
-            ev.data_len = bytes_read - (sizeof (struct nlmsghdr) + sizeof (unsigned char) + sizeof (unsigned char) + ((int) id_len) * PURSUIT_ID_LEN); /* XXX */
+            ev.data = (void *)ptr;
+            ev.data_len = bytes_read - (ptr - (unsigned char *)ev.buffer);
         } else {
             ev.data = NULL;
             ev.data_len = 0;
@@ -459,9 +513,9 @@ Event::Event(Event &ev) {
     type = ev.type;
     id = ev.id;
     data_len = ev.data_len;
-    buffer = malloc(sizeof (struct nlmsghdr) + sizeof (type) + sizeof (unsigned char) +id.length() + data_len);
-    memcpy(buffer, ev.buffer, sizeof (struct nlmsghdr) + sizeof (type) + sizeof (unsigned char) +id.length() + data_len);
-    data = (char *) buffer + sizeof (struct nlmsghdr) + sizeof (type) + sizeof (unsigned char) +id.length();
+    buffer = malloc(sizeof (struct nlmsghdr) + sizeof (type) + sizeof (unsigned char) + id.length() + data_len);
+    memcpy(buffer, ev.buffer, sizeof (struct nlmsghdr) + sizeof (type) + sizeof (unsigned char) + id.length() + data_len);
+    data = (char *) buffer + sizeof (struct nlmsghdr) + sizeof (type) + sizeof (unsigned char) + id.length();
 }
 
 Event::~Event() {

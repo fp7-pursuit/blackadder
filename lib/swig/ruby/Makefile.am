@@ -13,7 +13,7 @@
 
 include ../swig-common.am
 
-SWIGCXXFLAGS += -I$(RUBY_ARCHDIR)
+SWIGCXXFLAGS += -I$(RUBY_HDRDIR) -I$(RUBY_HDRDIR)/$(RUBY_ARCH)
 
 if DARWIN
 SWIGLDFLAGS += -shrext .bundle -Wl,-bundle -Wl,-undefined -Wl,dynamic_lookup
@@ -32,8 +32,11 @@ blackadder_la_LDFLAGS += $(SWIGLDFLAGS)
 
 SWIGFLAGS += -ruby -outdir .
 
-blackadder_wrap.cxx: *.i $(LIBDIR)/*.hpp
+blackadder_wrap.cxx: *.i $(LIBDIR)/*.h $(LIBDIR)/*.hpp
 	$(SWIG) $(SWIGFLAGS) blackadder.i
 
 clean-local:
 	rm -f blackadder_wrap.cxx
+
+install-exec-hook:
+	test -n "$(LDCONFIG)" -a "$(libdir)" = "/usr/local/lib" && $(LDCONFIG) /usr/local/lib || true # XXX

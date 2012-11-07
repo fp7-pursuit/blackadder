@@ -24,7 +24,7 @@
 
 CLICK_DECLS
 
-/**@brief (blackadder Core) GlobalConf is a Click Element that contains information that need to be shared across multiple Blackadder Elements.
+/**@brief (Blackadder Core) GlobalConf is a Click Element that contains information that need to be shared across multiple Blackadder Elements.
  * 
  * See the configure method for a detailed description of this information.
  *

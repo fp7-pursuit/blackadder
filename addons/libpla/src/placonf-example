@@ -1,0 +1,5 @@
+#!/usr/local/bin/bash
+
+./placonf ttp create "2008-01-01 00:00:00" "2020-01-01 10:10:10" > ttp.cert
+./placonf -C ttp.cert id sign 31 31 "2008-02-02 01:01:01" "2019-01-01 00:00:00" > user.cert
+./placonf -C user.cert cert verify

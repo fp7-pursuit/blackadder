@@ -41,19 +41,6 @@
 # See LICENSE and COPYING for more details.
 #
 
-#-
-# Copyright (C) 2011  Oy L M Ericsson Ab, NomadicLab
-#
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License version 2 as
-# published by the Free Software Foundation.
-#
-# Alternatively, this software may be distributed under the terms of the
-# BSD license.
-#
-# See LICENSE and COPYING for more details.
-#
-
 VPATH = @srcdir@
 pkgdatadir = $(datadir)/@PACKAGE@
 pkgincludedir = $(includedir)/@PACKAGE@
@@ -74,25 +61,15 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 DIST_COMMON = $(srcdir)/../swig-common.am $(srcdir)/Makefile.am \
-	$(srcdir)/Makefile.in $(srcdir)/includes.am
+	$(srcdir)/Makefile.in
 @LINUX_TRUE@am__append_1 = -D__linux__=1
-
-# XXX: Assume OpenJDK 6, installed in the default location, as the primary
-#      alternative. Also support Sun JDK 6 as a secondary option.
-@LINUX_TRUE@am__append_2 = -I/usr/lib/jvm/java-6-openjdk/include -I/usr/lib/jvm/java-6-openjdk/include/linux -I/usr/lib/jvm/java-6-sun/include -I/usr/lib/jvm/java-6-sun/include/linux
-
-# XXX: Assume OpenJDK 6, installed in the default location.
-@FREEBSD_TRUE@am__append_3 = -I/usr/local/openjdk6/include -I/usr/local/openjdk6/include/freebsd
-
-# XXX: Assume the default Java installation.
-@DARWIN_TRUE@am__append_4 = -I/System/Library/Frameworks/JavaVM.framework/Headers
 subdir = swig/java
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/m4/langs.m4 \
-	$(top_srcdir)/m4/libtool.m4 $(top_srcdir)/m4/ltoptions.m4 \
-	$(top_srcdir)/m4/ltsugar.m4 $(top_srcdir)/m4/ltversion.m4 \
-	$(top_srcdir)/m4/lt~obsolete.m4 $(top_srcdir)/m4/python.m4 \
-	$(top_srcdir)/configure.ac
+am__aclocal_m4_deps = $(top_srcdir)/m4/ax_jni_include_dir.m4 \
+	$(top_srcdir)/m4/langs.m4 $(top_srcdir)/m4/libtool.m4 \
+	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
+	$(top_srcdir)/m4/ltversion.m4 $(top_srcdir)/m4/lt~obsolete.m4 \
+	$(top_srcdir)/m4/python.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
@@ -183,6 +160,7 @@ INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 JAVAC = @JAVAC@
+JAVA_INCLUDES = @JAVA_INCLUDES@
 LD = @LD@
 LDCONFIG = @LDCONFIG@
 LDFLAGS = @LDFLAGS@
@@ -219,7 +197,7 @@ PYTHON_VERSION = @PYTHON_VERSION@
 RANLIB = @RANLIB@
 RUBY = @RUBY@
 RUBY_ARCH = @RUBY_ARCH@
-RUBY_ARCHDIR = @RUBY_ARCHDIR@
+RUBY_HDRDIR = @RUBY_HDRDIR@
 RUBY_VER = @RUBY_VER@
 SED = @SED@
 SET_MAKE = @SET_MAKE@
@@ -227,6 +205,7 @@ SHELL = @SHELL@
 STRIP = @STRIP@
 SWIG = @SWIG@
 VERSION = @VERSION@
+_ACJNI_JAVAC = @_ACJNI_JAVAC@
 abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
 abs_top_builddir = @abs_top_builddir@
@@ -289,7 +268,6 @@ SWIGFLAGS = -Wall -c++ -I$(LIBDIR) $(am__append_1) -java -outdir \
 	$(SWIG_OUTDIR) -package $(SWIG_PACKAGE)
 SWIGCXXFLAGS = -Wall -fno-strict-aliasing -I$(LIBDIR) $(JAVA_INCLUDES)
 SWIGLDFLAGS = 
-JAVA_INCLUDES = $(am__append_2) $(am__append_3) $(am__append_4)
 BUILT_SOURCES = blackadder_wrap.cxx
 lib_LTLIBRARIES = libblackadder_java.la
 libblackadder_java_la_SOURCES = blackadder_wrap.cxx
@@ -304,7 +282,7 @@ all: $(BUILT_SOURCES)
 
 .SUFFIXES:
 .SUFFIXES: .cxx .lo .o .obj
-$(srcdir)/Makefile.in:  $(srcdir)/Makefile.am $(srcdir)/../swig-common.am $(srcdir)/includes.am $(am__configure_deps)
+$(srcdir)/Makefile.in:  $(srcdir)/Makefile.am $(srcdir)/../swig-common.am $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
@@ -558,7 +536,8 @@ install-dvi: install-dvi-am
 install-dvi-am:
 
 install-exec-am: install-libLTLIBRARIES
-
+	@$(NORMAL_INSTALL)
+	$(MAKE) $(AM_MAKEFLAGS) install-exec-hook
 install-html: install-html-am
 
 install-html-am:
@@ -600,8 +579,8 @@ ps-am:
 uninstall-am: uninstall-libLTLIBRARIES
 	@$(NORMAL_INSTALL)
 	$(MAKE) $(AM_MAKEFLAGS) uninstall-hook
-.MAKE: all check install install-am install-data-am install-strip \
-	uninstall-am
+.MAKE: all check install install-am install-data-am install-exec-am \
+	install-strip uninstall-am
 
 .PHONY: CTAGS GTAGS all all-am check check-am clean clean-generic \
 	clean-libLTLIBRARIES clean-libtool clean-local ctags distclean \
@@ -609,29 +588,35 @@ uninstall-am: uninstall-libLTLIBRARIES
 	distclean-tags distdir dvi dvi-am html html-am info info-am \
 	install install-am install-data install-data-am \
 	install-data-hook install-dvi install-dvi-am install-exec \
-	install-exec-am install-html install-html-am install-info \
-	install-info-am install-libLTLIBRARIES install-man install-pdf \
-	install-pdf-am install-ps install-ps-am install-strip \
-	installcheck installcheck-am installdirs maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-compile \
-	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags uninstall uninstall-am uninstall-hook \
-	uninstall-libLTLIBRARIES
+	install-exec-am install-exec-hook install-html install-html-am \
+	install-info install-info-am install-libLTLIBRARIES \
+	install-man install-pdf install-pdf-am install-ps \
+	install-ps-am install-strip installcheck installcheck-am \
+	installdirs maintainer-clean maintainer-clean-generic \
+	mostlyclean mostlyclean-compile mostlyclean-generic \
+	mostlyclean-libtool pdf pdf-am ps ps-am tags uninstall \
+	uninstall-am uninstall-hook uninstall-libLTLIBRARIES
 
 
 SWIG ?= swig
 
+#include includes.am
+
 JAVAC ?= javac
 
-blackadder_wrap.cxx: *.i $(LIBDIR)/*.hpp
+blackadder_wrap.cxx: *.i  $(LIBDIR)/*.h $(LIBDIR)/*.hpp
 	test -d $(SWIG_OUTDIR) || mkdir -p $(SWIG_OUTDIR)
 	$(SWIG) $(SWIGFLAGS) blackadder.i
+	cp EventProxy.java $(SWIG_OUTDIR)
 	$(JAVAC) $(SWIG_OUTDIR)/*.java -d .
 
 clean-local:
 	rm -f blackadder_wrap.cxx
 	rm -rf $(SWIG_OUTDIR)
 	rm -rf $(SWIG_PACKAGE)
+
+install-exec-hook:
+	test -n "$(LDCONFIG)" -a "$(libdir)" = "/usr/local/lib" && $(LDCONFIG) /usr/local/lib || true # XXX
 
 install-data-hook:
 	cp -r $(SWIG_PACKAGE) $(libdir)

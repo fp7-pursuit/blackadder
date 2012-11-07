@@ -37,6 +37,7 @@ void *event_listener_loop(void *arg) {
             ba->publish_data(ev.id, DOMAIN_LOCAL, NULL, 0, end_payload, payload_size);
         }
     }
+    return NULL;
 }
 
 void sigfun(int sig) {

@@ -50,7 +50,7 @@ Forwarder::~Forwarder() {
     click_chatter("Forwarder: destroyed!");
 }
 
-int Forwarder::configure(Vector<String> &conf, ErrorHandler *errh) {
+int Forwarder::configure(Vector<String> &conf, ErrorHandler */*errh*/) {
     int port;
     int reverse_proto;
     gc = (GlobalConf *) cp_element(conf[0], this);
@@ -117,7 +117,7 @@ int Forwarder::configure(Vector<String> &conf, ErrorHandler *errh) {
     return 0;
 }
 
-int Forwarder::initialize(ErrorHandler *errh) {
+int Forwarder::initialize(ErrorHandler */*errh*/) {
     //click_chatter("Forwarder: Initialized!");
     return 0;
 }

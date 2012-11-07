@@ -1,0 +1,13 @@
+# Usage in FreeBSD:  make
+# Usage in Mac OS X: bsdmake
+
+MAKE=gmake
+
+CC=gcc
+CFLAGS=-I/usr/local/include -I/opt/local/include
+LDFLAGS=-L/usr/local/lib -L/opt/local/lib
+
+.MAIN: all
+
+.DEFAULT:
+	$(MAKE) CC="$(CC)" CFLAGS="$(CFLAGS)" LDFLAGS="$(LDFLAGS)" $@

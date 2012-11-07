@@ -14,7 +14,7 @@
 %module BA
 %{
 #include "blackadder.hpp"
-//#include "nb_blackadder.hpp"
+#include "nb_blackadder.hpp"
 #include "bitvector.hpp"
 %}
 
@@ -37,10 +37,15 @@ typedef char  int8_t;
 
 // Apply typemap for (void *BYTES, unsigned int LEN) to str_opt and data
 %apply (void *BYTES, unsigned int LEN) { (void *data, unsigned int data_len), (void *str_opt, unsigned int str_opt_len) };
+%apply (void *A_BYTES, unsigned int LEN) { (void *a_data, unsigned int data_len) };
+%apply (void *BYTES, unsigned int LEN) { (const unsigned char *data, unsigned int data_len) };
 // Apply typemap for "char *BYTE" to (e.g.) Event.data
 %apply char *BYTE { void *data };
 
+// Python methods for NB_Blackadder class
+%include nb_blackadder.i
+
 %include "blackadder_defs.h"
 %include "blackadder.hpp"
-//%include "nb_blackadder.hpp"
+%include "nb_blackadder.hpp"
 %include "bitvector.hpp"

@@ -12,6 +12,11 @@
  * See LICENSE and COPYING for more details.
  */
 
+/**
+ * @file blackadder_defs.h
+ * @brief Blackadder definitions.
+ */
+
 #ifndef BLACKADDER_DEFS_HPP
 #define BLACKADDER_DEFS_HPP
 
@@ -47,6 +52,6 @@
 #define PUBLISHED_DATA 104
 #define MATCH_PUB_SUBS 105
 #define RV_RESPONSE 106	
-#define NETLINK_BADDER 20
+#define NETLINK_BADDER 30
 
 #endif /* BLACKADDER_DEFS_HPP */

@@ -20,7 +20,7 @@
 CLICK_DECLS
 
 /**
- * @brief (blackadder Core) The FromNetlink Element receives packets from applications, annotates and pushes them to the LocalProxy Element.
+ * @brief (Blackadder Core) The FromNetlink Element receives packets from applications, annotates and pushes them to the LocalProxy Element.
  * 
  * In kernel space it also keeps track of the applications (assuming that the netlink port used by each application is the process ID). 
  * When an application terminates, it sends a disconnection message to the LocalProxy on behalf of the application.
@@ -70,7 +70,7 @@ public:
      * 
      * In user space this method calls the add_select method to denote that the selected method should be called whenever the socket is readable.
      * In kernel space, it initializes the kernel socket (netlink port 0 and netlink protocol NETLINK_BLACKADDER) and the mutex that protects the down_queue.
-     * In kernel space it also initializes the Task and the Timer and schedules the timer. The Task is scheduled only when packets arrive from the socket.
+     * In kernel space it also initializes the Task. The Task is scheduled only when packets arrive from the socket.
      * @param errh
      * @return 
      */
@@ -78,20 +78,16 @@ public:
     /**@brief Cleanups everything.
      * 
      * If the stage is before CLEANUP_INITIALIZED (i.e. the element was never initialized), then it does nothing.
-     * In the opposite case it unschedules the Task, clears and deletes the Timer, empties the down_queue and deletes all packets in it.
+     * In the opposite case it unschedules the Task, clears, empties the down_queue and deletes all packets in it.
      * @param stage stage passed by Click
      */
     void cleanup(CleanupStage stage);
-#if CLICK_LINUXMODULE
+#if CLICK_LINUXMODULE || CLICK_BSDMODULE
     /**@brief This task is fastly rescheduled when more packets exist in the down_queue.
      * Each time it runs, it acquires the mutex and pushes all pending packets to the LocalProxy Element.
      * During that time processes sending packets to their netlink socket are blocked in that mutex.
      */
     bool run_task(Task *t);
-    /**@brief The Timer runs periodically and checks if a previously recorded process (by the callback method) ended.
-     *  For each ended process it pushes a disconnection packet to the Local Proxy and reschedules itself.
-     */
-    void run_timer(Timer *_timer);
 #else
     /**@brief The selected method overrides Click Element's selected method (User-Space only).
      *  The netlink socket is always marked as readable. Whenever it is, the selected method is called.
@@ -102,17 +98,12 @@ public:
     /**@brief A pointer to the base Netlink Element.
      */
     Netlink *netlink_element;
-#if CLICK_LINUXMODULE
+#if CLICK_LINUXMODULE || CLICK_BSDMODULE
     /**@brief A Click Task used for processing all packets from the down_queue (Kernel-space Only).
      * 
      * Packets are immediately put there by the netlink callback function that runs is the process context.
      */
     Task *_task;
-    /** @brief A Click Timer used for checking for terminated applications. It runs periodically.
-     * 
-     * If a processes is detected as terminated a disconnect message is sent to the LocalProxy.
-     */
-    Timer *_timer;
 #endif
 };
 

@@ -19,7 +19,7 @@ from blackadder.blackadder import *
 #import select
 
 def _main(argv=[]):
-    strategy = NODE_LOCAL
+    strategy = DOMAIN_LOCAL
     if len(argv) >= 2:
         strategy = int(argv[1])
     
@@ -45,5 +45,6 @@ def event_handler(ev):
                                    else ev.data)
 
 if __name__ == "__main__":
+    import os; print os.getpid()
     import sys
     _main(sys.argv)

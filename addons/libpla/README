@@ -1,0 +1,123 @@
+PLA Installation Introductions
+
+This manual assumes that Click modular router and Blackadder are already installed.
+
+1. Install the applications that pla library requires
+1.1 OpenSSL libraries and headers. (openssl, libopenssl)
+ sudo apt-get install libssl-dev
+1.2 GNU MP Bignum library version 4.20 or newer (libgmp4)
+ sudo apt-get -y install libgmp3-dev
+1.3 GNU Libtool
+ apt-get install libtool automake autoconf autotools-dev
+
+2. Install pla library In the libpla directory of Blackadder distribution, run sudo ./runme.sh
+ cd libpla
+ sudo ./runme.sh
+
+If there is "lt-placonf: error while loading shared libraries" error, try sudo ldconfig then run runme.sh again.
+ sudo ldconfig
+
+3. Install the Blackadder core with PLA enabled
+3.1 In the src directory of your Blackadder distribution, run autoconf
+ cd ../src
+ autoconf
+3.2 Run ./configure --enable-pla --disable-linuxmodule
+ ./configure --enable-pla --disable-linuxmodule
+3.3 Run make && sudo make install
+ make
+ sudo make install
+========
+
+Using libpla:
+
+0. Software requirements:
+- OpenSSL libraries and headers. (openssl, libopenssl)
+- GNU MP Bignum library version 4.20 or newer (libgmp4)
+
+===
+1. Compile libpla with make
+1.1 Add "-lpla" flag to compile options of your program
+1.2 include "path_to_libpla/include/libpla.h" header to your program
+
+
+===
+This is now done automatically by make, you should not need to do step 2.
+2. Create necessary certificate files
+2.1 TTP certificate: ./placonf ttp create start_time end_time > filename
+e.g.: ./placonf ttp create "2000-01-01 00:00:00" "2010-01-01 10:10:10" > ttp.cert
+
+2.2 User certificate: ./placonf -C ttp_cert_file id sign rights delegatable_rights 
+	start_time end_time [rid]> filename
+e.g.: 
+./placonf -C ttp.cert id sign 31 31 "2000-02-02 01:01:01" "2009-01-01 00:00:00" > user.cert
+
+2.3 Verify the user certificate: ./placonf -C filename cert verify
+e.g.: ./placonf -C user.cert cert verify
+- This should produce: "Successful verify"
+
+One can use "./placonf-example" script to run these steps
+
+2.4 Optional: copy the created user certificate file to /etc/pla.conf 
+
+2.5 Optional: create a certificate tied to specific rid, see "./placonf-rid-example" script
+
+===
+3. Initialize libpla by calling: void libpla_init(char *cert_file_path, int crypto), e.g. 
+libpla_init(NULL, PLA_CRYPTO_SW);
+- This assumes that the user's certificate file is located in /etc/pla.conf
+
+3.1 Add PLA header to some data
+pla_header = malloc(sizeof(struct pla_hdr));
+uint8_t libpla_pla_header_add(struct pla_hdr *pla_header, pla_certificate_list_item_t *pla_cert,
+	unsigned char *psirp_header, int psirp_header_len, unsigned char *payload, int payload_len);
+- psirp_header refers to the header which is before PLA header and which will be signed
+- If pla_cert is NULL, then a default certificate will be used (from /etc/pla.conf)
+
+We assume the following header structure:
+ (fields which are not included in the signature calculation like forwarding id)
+ psirp_header (e.g. scope + rendezvous id) which is located in front of the PLA header
+ pla_header
+ payload (inluding other headers, metadata, etc. which are located after the PLA header)
+
+3.2. Verify the data which includes PLA header
+uint8_t libpla_pla_receive(unsigned char *data, int length, int offset, 
+	sid_t *sid, rid_t *rid, uint8_t exit_mask);
+- length is the total length of the data, while the offset is the starting point of the PLA 
+header (offset = psirp_header_len)
+- if sid != NULL, sid = Hash(TTP_PK) check will be made
+- if rid != NULL, rid will be included into identity hash calculation.
+Note: rid must be given to pla_receive function only if rid is tied to sender's certificate
+as mentioned in 2.5.
+- exit_mask can be used to e.g. skip signature calculation if sequence number is invalid, if
+exit_mask is 0, all checks will be carried out in any case
+- return value of libpla_pla_receive is a combination of bitmasks defined in 
+libpla/include/libpla_configs.h, e.g. (return_value & PLA_SIG_OK) is true if the signature is valid
+
+
+3.3 Optional: Certificate management functions
+3.3.1 Certificates can be created or loaded directly using libpla, use:
+pla_certificate_list_item_t* libpla_create_certificate(char *ttp_cert_path, char *new_cert_path,
+    uint32_t not_before_time, uint32_t not_after_time, uint8_t rights,
+    uint8_t deleg_rights, rid_t *rid);
+- If new_cert_path is NULL, the new certificate will not be saved into file
+- If rid != NULL, then the certificate will be tied to the specific rid, 
+it will NOT work with any other rid!
+
+pla_certificate_list_item_t* libpla_read_certificate(char *cert_file_path);
+
+3.3.2 Search and delete:
+pla_certificate_list_item_t* libpla_search_certificate(rid_t *rid, unsigned char *impl_cert);
+uint8_t libpla_delete_certificate(rid_t *rid, unsigned char *impl_cert);
+- These functions will search or delete a _first_ entry
+- Note the search order if both parameters are given: 1. Rid, 2. Implicit certificate
+
+3.3.3 Certificates can be printed in the following way:
+void libpla_print_certificates(FILE *stream);
+- Prints all certificates
+
+void libpla_print_certificate_information(FILE *stream, pla_certificate_list_item_t *pla_cert);
+- Prints a single certificate information
+
+===
+
+File platest.c contains an example of using libpla in various scenarious.

@@ -23,7 +23,7 @@ CLICK_DECLS
 
 class LocalHost;
 
-/**@brief (blackadder Core) The LocalProxy Element is the core element in a Blackadder Node.
+/**@brief (Blackadder Core) The LocalProxy Element is the core element in a Blackadder Node.
  * 
  * All Click packets received by the Core component are annotated with an application identifier by the FromNetlink Element. 
  * Click packets received by other Click elements are annotated with the Click port with which the LocaLproxy element is connected.

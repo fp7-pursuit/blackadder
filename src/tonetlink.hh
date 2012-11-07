@@ -18,7 +18,7 @@
 
 CLICK_DECLS
 
-/**@brief (blackadder Core) The ToNetlink Element is the Element that sends packets to applications.
+/**@brief (Blackadder Core) The ToNetlink Element is the Element that sends packets to applications.
  * 
  * The LocalProxy pushes annotated packets to the ToNetlink element, which then sends them to the right applications using the provided packet annotation.
  */
@@ -83,7 +83,7 @@ public:
      * @param p a pointer to the packet
      */
     void push(int port, Packet *p);
-#if CLICK_LINUXMODULE
+#if CLICK_LINUXMODULE || CLICK_BSDMODULE
     /**@brief This Click Task is executed whenever a packet is pushed in the up_queue (in kernel space only).
      * 
      * It tries to send all packets in the queue and if, in the meanwhile, another packet was pushed in the queue, it is fastly rescheduled.
@@ -102,7 +102,7 @@ public:
     /** @brief a pointer to the Base Netlink Element.
      */
     Netlink *netlink_element;
-#if CLICK_LINUXMODULE
+#if CLICK_LINUXMODULE || CLICK_BSDMODULE
     /**@brief the Click Task.
      */
     Task *_task;

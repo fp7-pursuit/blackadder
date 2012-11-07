@@ -1,7 +1,7 @@
 #!/bin/sh -m
 
 #-
-# Copyright (C) 2011  Oy L M Ericsson Ab, NomadicLab
+# Copyright (C) 2011-2012  Oy L M Ericsson Ab, NomadicLab
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 as
@@ -13,16 +13,20 @@
 # See LICENSE and COPYING for more details.
 #
 
+#export PYTHONPATH=$HOME/usr/lib/python2.7/site-packages
+
 if [ x"$1" = x"" ]
 then
-    FILE=$HOME/movie.mov
+    FILE=file://$HOME/LipsinForwarding.mp4
 else
     FILE=$1
 fi
 
 python recv_and_pub.py &
-PID=$!
-echo "PID="$PID
+PY_PID=$!
+echo "PY_PID="$PY_PID
 sleep 0.5
-vlc -4 --no-audio --no-video $FILE --sout "#duplicate{dst=std{access=udp,mux=ts,dst=127.0.0.1:44252}"
-kill -s INT $PID
+vlc --no-audio --no-video $FILE --sout "#duplicate{dst=std{access=udp,mux=ts,dst=127.0.0.1:44252}"
+kill -s INT $PY_PID
+sleep 2
+kill $PY_PID

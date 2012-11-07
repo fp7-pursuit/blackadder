@@ -24,13 +24,13 @@ LocalProxy::~LocalProxy() {
     click_chatter("LocalProxy: destroyed!");
 }
 
-int LocalProxy::configure(Vector<String> &conf, ErrorHandler *errh) {
+int LocalProxy::configure(Vector<String> &conf, ErrorHandler */*errh*/) {
     gc = (GlobalConf *) cp_element(conf[0], this);
     //click_chatter("LocalProxy: configured!");
     return 0;
 }
 
-int LocalProxy::initialize(ErrorHandler *errh) {
+int LocalProxy::initialize(ErrorHandler */*errh*/) {
     //click_chatter("LocalProxy: initialized!");
     return 0;
 }
@@ -97,6 +97,7 @@ void LocalProxy::push(int in_port, Packet * p) {
         }
     } else {
         /*the request comes from the IPC element or from a click Element. The descriptor here may be the netlink ID of an application or the click port of an Element*/
+#if !CLICK_NS
         if (in_port == 0) {
             /*The packet came from the FromNetlink Element. An application sent it*/
             descriptor = p->anno_u32(0);
@@ -106,6 +107,18 @@ void LocalProxy::push(int in_port, Packet * p) {
             descriptor = in_port;
             type_of_publisher = CLICK_ELEMENT;
         }
+#else
+        if (in_port == 0) {
+            /*The packet came from the FromNetlink Element. An application sent it*/
+            memcpy(&descriptor, p->data(), sizeof (descriptor));
+            p->pull(sizeof (descriptor));
+            type_of_publisher = LOCAL_PROCESS;
+        } else {
+            /*anything else is from a Click Element (e.g. the LocalRV Element)*/
+            descriptor = in_port;
+            type_of_publisher = CLICK_ELEMENT;
+        }
+#endif
         _localhost = getLocalHost(type_of_publisher, descriptor);
         type = *(p->data());
         if (type == DISCONNECT) {
@@ -479,7 +492,6 @@ void LocalProxy::handleRVNotification(Packet *p) {
             }
             break;
         case STOP_PUBLISH:
-            //click_chatter("LocalProxy: Received NULL FID");
             for (int i = 0; i < (int) numberOfIDs; i++) {
                 ap = activePublicationIndex.get(IDs[i]);
                 if (ap != activePublicationIndex.default_value()) {
@@ -497,7 +509,7 @@ void LocalProxy::handleRVNotification(Packet *p) {
             }
             break;
         default:
-            //click_chatter("LocalProxy: FATAL - didn't understand the RV notification");
+            click_chatter("LocalProxy: FATAL - didn't understand the RV notification");
             break;
     }
 }
@@ -508,6 +520,7 @@ void LocalProxy::pushDataToLocalSubscriber(LocalHost *_localhost, String &ID, Pa
     WritablePacket *newPacket;
     IDLength = ID.length() / PURSUIT_ID_LEN;
     //click_chatter("pushing data to subscriber %s", _localhost->localHostID.c_str());
+#if !CLICK_NS
     newPacket = p->push(sizeof (unsigned char) + sizeof (unsigned char) +ID.length());
     memcpy(newPacket->data(), &type, sizeof (unsigned char));
     memcpy(newPacket->data() + sizeof (unsigned char), &IDLength, sizeof (unsigned char));
@@ -518,6 +531,22 @@ void LocalProxy::pushDataToLocalSubscriber(LocalHost *_localhost, String &ID, Pa
         newPacket->set_anno_u32(0, _localhost->id);
         output(0).push(newPacket);
     }
+#else
+    if (_localhost->type == CLICK_ELEMENT) {
+        newPacket = p->push(sizeof (unsigned char) + sizeof (unsigned char) +ID.length());
+        memcpy(newPacket->data(), &type, sizeof (unsigned char));
+        memcpy(newPacket->data() + sizeof (unsigned char), &IDLength, sizeof (unsigned char));
+        memcpy(newPacket->data() + sizeof (unsigned char) + sizeof (unsigned char), ID.c_str(), ID.length());
+        output(_localhost->id).push(newPacket);
+    } else {
+        newPacket = p->push(sizeof (_localhost->id) + sizeof (unsigned char) + sizeof (unsigned char) +ID.length());
+        memcpy(newPacket->data(), &_localhost->id, sizeof (_localhost->id));
+        memcpy(newPacket->data() + sizeof (_localhost->id), &type, sizeof (unsigned char));
+        memcpy(newPacket->data() + sizeof (_localhost->id) + sizeof (unsigned char), &IDLength, sizeof (unsigned char));
+        memcpy(newPacket->data() + sizeof (_localhost->id) + sizeof (unsigned char) + sizeof (unsigned char), ID.c_str(), ID.length());
+        output(0).push(newPacket);
+    }
+#endif
 }
 
 /*this method is quite different from the one above
@@ -672,7 +701,13 @@ void LocalProxy::handleUserPublication(String &ID, BABitvector &FID_to_subscribe
         pushDataToRemoteSubscribers(IDs, FID_to_subscribers, p);
     } else {
         /*local and remote subscribers exist*/
-        pushDataToRemoteSubscribers(IDs, FID_to_subscribers, p->clone()->uniqueify());
+        if (gc->TMFID != NULL) {
+            if (FID_to_subscribers != gc->TMFID) {
+                pushDataToRemoteSubscribers(IDs, FID_to_subscribers, p->clone()->uniqueify());
+            }
+        } else {
+            pushDataToRemoteSubscribers(IDs, FID_to_subscribers, p->clone()->uniqueify());
+        }
         for (LocalHostStringHashMapIter localSubscribers_it = localSubscribers.begin(); localSubscribers_it != localSubscribers.end(); localSubscribers_it++) {
             LocalHost *_localhost = (*localSubscribers_it).first;
             if (counter == localSubscribersSize) {
@@ -765,6 +800,7 @@ bool LocalProxy::findLocalSubscribers(Vector<String> &IDs, LocalHostStringHashMa
 void LocalProxy::sendNotificationLocally(unsigned char type, LocalHost *_localhost, String ID) {
     WritablePacket *p;
     unsigned char IDLength;
+#if !CLICK_NS
     p = Packet::make(30, NULL, sizeof (unsigned char) /*type*/ + sizeof (unsigned char) /*id length*/ +ID.length() /*id*/, 0);
     IDLength = ID.length() / PURSUIT_ID_LEN;
     memcpy(p->data(), &type, sizeof (char));
@@ -778,6 +814,24 @@ void LocalProxy::sendNotificationLocally(unsigned char type, LocalHost *_localho
         //click_chatter("setting annotation: %d", _localhost->id);
         output(0).push(p);
     }
+#else
+    if (_localhost->type == CLICK_ELEMENT) {
+        p = Packet::make(30, NULL, sizeof (unsigned char) /*type*/ + sizeof (unsigned char) /*id length*/ +ID.length() /*id*/, 0);
+        IDLength = ID.length() / PURSUIT_ID_LEN;
+        memcpy(p->data(), &type, sizeof (char));
+        memcpy(p->data() + sizeof (unsigned char), &IDLength, sizeof (unsigned char));
+        memcpy(p->data() + sizeof (unsigned char) + sizeof (unsigned char), ID.c_str(), IDLength * PURSUIT_ID_LEN);
+        output(_localhost->id).push(p);
+    } else {
+        p = Packet::make(30, NULL, sizeof (_localhost->id) + sizeof (unsigned char) /*type*/ + sizeof (unsigned char) /*id length*/ +ID.length() /*id*/, 0);
+        IDLength = ID.length() / PURSUIT_ID_LEN;
+        memcpy(p->data(), &_localhost->id, sizeof (_localhost->id));
+        memcpy(p->data() + sizeof (_localhost->id), &type, sizeof (char));
+        memcpy(p->data() + sizeof (_localhost->id) + sizeof (unsigned char), &IDLength, sizeof (unsigned char));
+        memcpy(p->data() + sizeof (_localhost->id) + sizeof (unsigned char) + sizeof (unsigned char), ID.c_str(), IDLength * PURSUIT_ID_LEN);
+        output(0).push(p);
+    }
+#endif
 }
 
 void LocalProxy::createAndSendPacketToRV(unsigned char type, unsigned char IDLength /*in fragments of PURSUIT_ID_LEN each*/, String &ID, unsigned char prefixIDLength /*in fragments of PURSUIT_ID_LEN each*/, String &prefixID, BABitvector &RVFID, unsigned char strategy) {
@@ -850,17 +904,34 @@ void LocalProxy::deleteAllActiveInformationItemPublications(LocalHost * _publish
                     /*None of the available local publishers has been previously notified*/
                     (*ap->publishers.begin()).second = START_PUBLISH;
                     IDLength = ap->fullID.length() / PURSUIT_ID_LEN;
-                    newPacket = Packet::make(30, NULL, sizeof (unsigned char) /*type*/ + sizeof (unsigned char) /*id length*/ +ap->fullID.length() /*id*/, 0);
-                    newPacket->set_anno_u32(0, (*ap->publishers.begin()).first->id);
                     type = START_PUBLISH;
+#if !CLICK_NS
+                    newPacket = Packet::make(30, NULL, sizeof (unsigned char) /*type*/ + sizeof (unsigned char) /*id length*/ +ap->fullID.length() /*id*/, 0);
                     memcpy(newPacket->data(), &type, sizeof (char));
                     memcpy(newPacket->data() + sizeof (unsigned char), &IDLength, sizeof (unsigned char));
                     memcpy(newPacket->data() + sizeof (unsigned char) + sizeof (unsigned char), ap->fullID.c_str(), ap->fullID.length());
                     if ((*ap->publishers.begin()).first->type == CLICK_ELEMENT) {
                         output((*ap->publishers.begin()).first->id).push(newPacket);
                     } else {
+                        newPacket->set_anno_u32(0, (*ap->publishers.begin()).first->id);
                         output(0).push(newPacket);
                     }
+#else
+                    if ((*ap->publishers.begin()).first->type == CLICK_ELEMENT) {
+                        newPacket = Packet::make(30, NULL, sizeof (unsigned char) /*type*/ + sizeof (unsigned char) /*id length*/ +ap->fullID.length() /*id*/, 0);
+                        memcpy(newPacket->data(), &type, sizeof (char));
+                        memcpy(newPacket->data() + sizeof (unsigned char), &IDLength, sizeof (unsigned char));
+                        memcpy(newPacket->data() + sizeof (unsigned char) + sizeof (unsigned char), ap->fullID.c_str(), ap->fullID.length());
+                        output((*ap->publishers.begin()).first->id).push(newPacket);
+                    } else {
+                        newPacket = Packet::make(30, NULL, sizeof ((*ap->publishers.begin()).first->id) + sizeof (unsigned char) /*type*/ + sizeof (unsigned char) /*id length*/ +ap->fullID.length() /*id*/, 0);
+                        memcpy(newPacket->data(), &(*ap->publishers.begin()).first->id, sizeof ((*ap->publishers.begin()).first->id));
+                        memcpy(newPacket->data() + sizeof ((*ap->publishers.begin()).first->id), &type, sizeof (char));
+                        memcpy(newPacket->data() + sizeof ((*ap->publishers.begin()).first->id) + sizeof (unsigned char), &IDLength, sizeof (unsigned char));
+                        memcpy(newPacket->data() + sizeof ((*ap->publishers.begin()).first->id) + sizeof (unsigned char) + sizeof (unsigned char), ap->fullID.c_str(), ap->fullID.length());
+                        output(0).push(newPacket);
+                    }
+#endif
                 }
             }
         } else {

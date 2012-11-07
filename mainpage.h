@@ -1,20 +1,33 @@
-/**\mainpage Implementation of Blackadder
+/**\mainpage Blackadder
  * 
- * \author George Parisis
+ * \author George Parisis et al.
  * 
- * Documentation for Core Blackadder, User Libraries, Topology Manager, Deployment Application and Sample Applications.
+ * Documentation for User Libraries, Core, Topology Manager and Deployment Tool.
  * 
- * \section sec1 Blackadder Core
  * 
- * ActivePublication, ActiveSubscription, BABitvector, BABitvector::Bit, Forwarder (Click Element), FromNetlink (Click Element), GlobalConf (Click Element), InformationItem, InformationItemSetItem, LocalHost, LocalProxy (Click Element), LocalRV (Click Element), Netlink (Click Element), RemoteHost, Scope, ToNetlink (Click Element)
- *
- * @section sec2 User Libraries
- * Blackadder Blocking Library
+ * \section sec1 User Libraries
  * 
- * @section sec3 Topology Manager
+ * Blackadder (blocking library), Event, NB_Blackadder (non-blocking library)
  * 
- * @section sec4 Deployment Application
  * 
- * @section sec5 Sample Applications
+ * \section sec2 Blackadder Core
+ * 
+ * \subsection subsec2_1 Click Elements
+ * 
+ * Forwarder, FromNetlink, GlobalConf, LocalProxy, LocalRV, Netlink, PLA, ToNetlink
+ * 
+ * \subsection subsec2_2 Other Classes and Structs
+ * 
+ * ActivePublication, ActiveSubscription, BABitvector, BABitvector::Bit,, ForwardingEntry, InformationItem, InformationItemSetItem, LocalHost, LocalHostSetItem, RemoteHost, RemoteHostSetItem, ScopeSetItem, StringSetItem
+ * 
+ * 
+ * \section sec3 Topology Manager
+ * 
+ * TMIgraph
+ * 
+ * 
+ * \section sec4 Deployment Tool
+ * 
+ * Domain, GraphRepresentation, NetworkConnection, NetworkNode, Parser
  * 
  */

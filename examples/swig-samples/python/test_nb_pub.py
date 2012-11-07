@@ -15,10 +15,11 @@
 
 """Very simple non-blocking text publisher example."""
 
+import time
 from blackadder.blackadder import *
 
 def _main(argv=[]):
-    strategy = NODE_LOCAL
+    strategy = DOMAIN_LOCAL
     if len(argv) >= 2:
         strategy = int(argv[1])
     
@@ -29,8 +30,11 @@ def _main(argv=[]):
         print ev
         if not ev or ev.type != START_PUBLISH:
             return
-        data = "Hello"
-        ba.publish_data(sid+rid, strategy, None, to_malloc_buffer(data))
+        data = ["Hello%d" % i for i in xrange(1, 4)]
+        ba.publish_data(sid+rid, strategy, None, to_malloc_buffer(data[0]))
+        ba.publish_data(sid+rid, strategy, None, to_malloc_buffer(data[1]))
+        ba.publish_data(sid+rid, strategy, None, to_malloc_buffer(data[2]))
+        time.sleep(0.5)
     
     ba.setPyCallback(event_handler)
     

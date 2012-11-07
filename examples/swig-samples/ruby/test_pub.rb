@@ -38,3 +38,5 @@ while true
     p data
     ba.publish_data(sid+rid, Blackadder::NODE_LOCAL, nil, data)
 end
+
+ba.disconnect()

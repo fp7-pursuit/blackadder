@@ -26,7 +26,7 @@ class RemoteHost;
 class Scope;
 class InformationItem;
 
-/**@brief (blackadder Core) LocalRV implements the rendezvous core function. Pub/sub requests are processed by this Element, which matches publishers with subscribers for all advertised information items.
+/**@brief (Blackadder Core) LocalRV implements the rendezvous core function. Pub/sub requests are processed by this Element, which matches publishers with subscribers for all advertised information items.
  * 
  * Depending on the dissemination strategy of an information item or scope, the LocalRV may directly publish notifications to Blackadder nodes or may request some assistance from the Topology Manager.
  * Currently a single rendezvous Element in a domain acts as the domain's rendezvous point.

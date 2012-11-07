@@ -8,7 +8,7 @@ been very verbose!) - I'll assume a blank install here on something like Debian:
 1) Install VLC (luggage or later should be ok).
 
 2) You will need to build the java bindings (instructions are included in the 
-java bindings directory - /BAv0.2/lib/bindings/java-binding). Make sure you 
+java bindings directory - lib/bindings/java-binding). Make sure you 
 get the correct location of your jni.h file in the Makefile and then do a 'make'.
 
 3) Edit the project.properties file and correct the path to your specific 
@@ -18,14 +18,17 @@ get the correct location of your jni.h file in the Makefile and then do a 'make'
 see lib/BuildLib.txt.
 
 5) In the video demo directory, type 'ant' to build the project. You may need to
-edit the build.xml file and change line 9 to point to your v0.2 location.
+edit the build.xml file and change line 9 to point to your Blackadder location.
 
 6) You need to start blackadder. I do it by running sudo click sample.conf 
 in the blackadder src directory.
 
-7) You're now ready to run the app! The two commands are;
-ant publisher
+7) You're now ready to run the app! The commands are;
+ant g_publisher (to run the graphical publisher) *
+ant t_publisher (to run the text-based publisher) *
 ant subscriber
+
+* only run one publisher, either the graphical or text-based.
 
 Run the publisher first, add some videos and then run the subscriber. You 
 will need to refresh the catalog whenever you change it in the publisher. 

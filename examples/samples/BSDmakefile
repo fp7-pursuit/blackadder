@@ -3,7 +3,11 @@
 
 MAKE=gmake
 
+CXX=g++
+CXXFLAGS=-I/usr/local/include -I/opt/local/include
+LDFLAGS=-L/usr/local/lib -L/opt/local/lib
+
 .MAIN: all
 
 .DEFAULT:
-	$(MAKE) $@
+	$(MAKE) CXX="$(CXX)" CXXFLAGS="$(CXXFLAGS)" LDFLAGS="$(LDFLAGS)" $@

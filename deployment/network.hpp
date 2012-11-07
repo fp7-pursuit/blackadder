@@ -20,6 +20,8 @@
 #include <string>
 #include <vector>
 #include <fstream>
+#include <map>
+#include <set>
 
 #include "bitvector.hpp"
 
@@ -27,6 +29,8 @@ using namespace std;
 
 class NetworkConnection;
 class NetworkNode;
+class NS3Application;
+class NS3ApplicationAttribute;
 
 /**@brief (Deployment Application) a representation of a network domain as read from the configuration file.
  * 
@@ -50,9 +54,15 @@ public:
     /**@brief number of nodes in the domain.
      */
     unsigned int number_of_nodes;
+    /**@brief number of packet layer nodes (PN) in the multilayer domain. Optical nodes (ON) don't get assigned LIDs.
+     */
+    unsigned int number_of_pl_nodes;
     /**@brief number of connections in the domain.
      */
     unsigned int number_of_connections;
+    /**@brief number of packet connections in the multilayer domain. Overlay-to-overlay connections (oo) don't get assigned LIDs.
+     */
+    unsigned int number_of_p_connections;
     /**@brief the length of an information identifier.
      */
     int ba_id_len;
@@ -74,6 +84,14 @@ public:
     /**@brief the overlay mode. mac or ip
      */
     string overlay_mode;
+    /*for NS3 deployment*/
+    uint64_t id;
+    /*It maps ethernet addresses to device variables' name in NS3*/
+    map<string, string> address_to_device_name;
+    /*a set that contains the NS3 devices already participating in a point to point connection - to avoid duplication of connections*/
+    set<string> NS3devices_in_connections;
+    map<string, string> label_to_node_name;
+    /********************************************************************************************************/
     /**@brief It prints an ugly representation of the Domain.
      */
     void printDomainData();
@@ -87,20 +105,23 @@ public:
      * @param index
      */
     void calculateLID(vector<Bitvector> &LIDs, int index);
-    /**@brief for each network node (and if the MAC address wasn't preassigned) it will ssh and learn the MAC address for all ethernet interfaces found in the configuration file.
+    /**@brief for each network node (and if the MAC address wasn't preassigned) it will ssh and learn the MAC address for all ethernet interfaces found in the configuration file. Also supports mac_ml overlay mode.
+     *
+     * @param no_remote If true, MAC address detection over SSH is not attempted.
      */
-    void discoverMacAddresses();
+    void discoverMacAddresses(bool no_remote);
     /**@brief returns the testbed IP address (dotted decimal string) given a node label.
      * 
      * @param label a node label
      * @return the testbed IP address (dotted decimal string)
      */
     string getTestbedIPFromLabel(string label);
-    /**@brief It locally creates and stores all Click/Blackadder configuration files for all network nodes (depending on the running mode).
+    /**@brief It locally creates and stores all Click/Blackadder configuration files for all network nodes (depending on the running mode). Also supports mac_ml overlay mode.
      *
      * @param montoolstub generate monitor tool counter stub or not
      */
     void writeClickFiles(bool montoolstub);
+    void writeNS3ClickFiles();
     /**@brief Given a node label, it returns a pointer to the respective NetworkNode.
      * 
      * @param label a node label.
@@ -132,21 +153,34 @@ public:
      *
      */
     string writeConfigFile(string filename);
-
+    /**@brief for NS3 deployment - assigns device names to all devices in the topology (from eth0 to ethN)
+     * Each connection will have a different ethernet interface
+     */
+    void assignDeviceNamesAndMacAddresses();
+    NetworkNode *getNode(string label);
+    string getNextMacAddress();
+    void createNS3SimulationCode();
 };
 
 class NetworkNode {
 public:
+    NetworkConnection *getConnection(string src_label, string dst_label);
     /***members****/
     string testbed_ip; //read from configuration file
     string label; //read from configuration file
     string running_mode; //user or kernel
+    string operating_system; //read from configuration file /*operating system*/
+    //string name; //read from configuration file /*node name*/
+    string type; //optical or electronic
     bool isRV; //read from configuration file
     bool isTM; //read from configuration file
     Bitvector iLid; //will be calculated
     Bitvector FID_to_RV; //will be calculated
     Bitvector FID_to_TM; //will be calculated
     vector<NetworkConnection *> connections;
+    /*for NS3 deployment*/
+    int deviceOffset;
+    vector<NS3Application *> applications;
 };
 
 class NetworkConnection {
@@ -163,7 +197,30 @@ public:
 
     string src_mac; //will be retrieved using ssh
     string dst_mac; //will be retrieved using ssh
+    
+    string in_pt; //input node for overlay node, read from configuration file /*e.g. in_pt="1"*/
+    string out_pt; //output port for overlay node read from configuration file /*e.g. out_pt="1"*/
+    
+    string lnk_type; //optical or electronic
     Bitvector LID; //will be calculated
+    /*NS3 related attributes*/
+    int mtu;
+    string rate;
+    string delay;
+};
+
+class NS3Application {
+public:
+    string name;
+    string start;
+    string stop;
+    vector<NS3ApplicationAttribute *> attributes;
+};
+
+class NS3ApplicationAttribute {
+public:
+    string name;
+    string value;
 };
 
 #endif	/* NETWORK_HPP */

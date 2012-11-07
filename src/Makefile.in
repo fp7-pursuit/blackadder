@@ -58,3 +58,5 @@ datadir = @datadir@
 endif
 
 include $(clickbuild_datadir)/pkg-Makefile
+
+ELEMENT_LIBS += @element_libs@

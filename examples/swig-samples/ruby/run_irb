@@ -1,5 +1,5 @@
 #!/bin/sh
-#export RUBYLIB=$HOME/bin/blackadder/lib/ruby/site_ruby/1.8/x86_64-linux
-#export RUBYLIB=$HOME/bin/blackadder/lib/ruby/site_ruby/1.8/amd64-freebsd8
-#export RUBYLIB=$HOME/bin/blackadder/lib/ruby/site_ruby/1.8/i686-darwin10
+#export RUBYLIB=$HOME/usr/lib/ruby/site_ruby/1.8/x86_64-linux
+#export RUBYLIB=$HOME/usr/lib/ruby/site_ruby/1.8/amd64-freebsd8
+#export RUBYLIB=$HOME/usr/lib/ruby/site_ruby/1.8/i686-darwin10
 irb $@

@@ -12,11 +12,21 @@
  * See LICENSE and COPYING for more details.
  */
 
+/**
+ * @file blackadder.hpp
+ * @brief Blackadder blocking library.
+ */
+
 #ifndef BLACKADDER_HPP
 #define BLACKADDER_HPP
 
 #ifdef __linux__
 #define HAVE_USE_NETLINK 1
+#endif
+
+#if !HAVE_USE_NETLINK
+/* __FreeBSD__, __APPLE__, etc. */
+#define HAVE_USE_UNIX 1
 #endif
 
 #include <stdio.h>
@@ -25,11 +35,17 @@
 #include <sys/socket.h>
 #if HAVE_USE_NETLINK
 #include <linux/netlink.h>
-#else  /* __FreeBSD__, __APPLE__, etc. */
+#elif HAVE_USE_UNIX
+# ifdef __linux__
+#include <linux/un.h>
+# else
 #include <sys/un.h>
 #include <sys/ioctl.h>
+# endif
+#include <stdint.h>
 #endif
 #include <errno.h>
+#include <unistd.h>
 #include <vector>
 #include <sstream> 
 #include <iostream>
@@ -58,10 +74,10 @@ class Event;
 
 /**@brief (User Library) This is the wrapper class that makes the service model available to all applications. 
  * 
- * blackadder expects requests to be sent in its netlink socket. Therefore the wrapper class just exports some human-friendly methods for creating service model compliant buffers that are sent to blackadder.
- * blackadder implements the Singleton Pattern. A single blackadder object can be created by a single process using the <b>public</b> Instance method. The Constructor is <b>protected</b>.
+ * Blackadder expects requests to be sent in its netlink socket. Therefore the wrapper class just exports some human-friendly methods for creating service model compliant buffers that are sent to Blackadder.
+ * Blackadder implements the Singleton Pattern. A single Blackadder object can be created by a single process using the <b>public</b> Instance method. The Constructor is <b>protected</b>.
  * 
- * @note All service request related methods enforce some rules regarding the size of the identifiers so that blackadder is not confused.
+ * @note All service request related methods enforce some rules regarding the size of the identifiers so that Blackadder is not confused.
  */
 class Blackadder {
 public:
@@ -69,15 +85,15 @@ public:
      * 
      */
     ~Blackadder();
-    /**@brief the Instance method is the only way to construct a blackadder object. It is impossible to construct multiple objects since Instance will return the already constructed one.
+    /**@brief the Instance method is the only way to construct a Blackadder object. It is impossible to construct multiple objects since Instance will return the already constructed one.
      * 
      * Instance will create a new object by calling the protected constructor and assign it to the m_pInstance value ONLY the first time it is called. All other times it will return the m_pInstance pointer.
-     * @param user_space if it is true, the netlink is created so that it can communicate with blackadder running in user space. 
-     * if it is false, the netlink is created so that it can communicate with blackadder running in kernel space.
+     * @param user_space if it is true, the netlink is created so that it can communicate with Blackadder running in user space. 
+     * if it is false, the netlink is created so that it can communicate with Blackadder running in kernel space.
      * @return 
      */
     static Blackadder* Instance(bool user_space);
-    /**@brief this method will send a PUBLISH_SCOPE request to blackadder. 
+    /**@brief this method will send a PUBLISH_SCOPE request to Blackadder. 
      * 
      * If prefix_id is an empty string, the request is about a root scope.
      * 
@@ -92,7 +108,7 @@ public:
      * @param str_opt_len the size of the provided bucket of bytes. When the IMPLICIT_RENDEZVOUS strategy is used str_opt_len should be FID_LEN.
      */
     void publish_scope(const string &id, const string &prefix_id, unsigned char strategy, void *str_opt, unsigned int str_opt_len);
-    /**@brief this method will send a PUBLISH_INFO request to blackadder. 
+    /**@brief this method will send a PUBLISH_INFO request to Blackadder. 
      * 
      * prefix_id CANNOT be an empty string.
      * 
@@ -109,7 +125,7 @@ public:
      * @param str_opt_len the size of the provided bucket of bytes. When the IMPLICIT_RENDEZVOUS strategy is used str_opt_len should be FID_LEN.
      */
     void publish_info(const string&id, const string&prefix_id, unsigned char strategy, void *str_opt, unsigned int str_opt_len);
-    /**@brief this method will send a UNPUBLISH_SCOPE request to blackadder. 
+    /**@brief this method will send a UNPUBLISH_SCOPE request to Blackadder. 
      * 
      * If prefix_id is the empty string, the request is about a root scope.
      * 
@@ -124,7 +140,7 @@ public:
      * @param str_opt_len the size of the provided bucket of bytes. When the IMPLICIT_RENDEZVOUS strategy is used str_opt_len should be FID_LEN.
      */
     void unpublish_scope(const string&id, const string&prefix_id, unsigned char strategy, void *str_opt, unsigned int str_opt_len);
-    /**@brief this method will send a UNPUBLISH_INFO request to blackadder.
+    /**@brief this method will send a UNPUBLISH_INFO request to Blackadder.
      * 
      * prefix_id CANNOT be an empty string.
      * 
@@ -139,7 +155,7 @@ public:
      * @param str_opt_len the size of the provided bucket of bytes. When the IMPLICIT_RENDEZVOUS strategy is used str_opt_len should be FID_LEN.
      */
     void unpublish_info(const string&id, const string&prefix_id, unsigned char strategy, void *str_opt, unsigned int str_opt_len);
-    /**@brief this method will send a SUBSCRIBE_SCOPE request to blackadder.
+    /**@brief this method will send a SUBSCRIBE_SCOPE request to Blackadder.
      * 
      * If prefix_id is the empty string, the request is about a root scope.
      * 
@@ -156,7 +172,7 @@ public:
      * @param str_opt_len the size of the provided bucket of bytes. When the IMPLICIT_RENDEZVOUS strategy is used str_opt_len should be FID_LEN.
      */
     void subscribe_scope(const string&id, const string&prefix_id, unsigned char strategy, void *str_opt, unsigned int str_opt_len);
-    /**@brief this method will send a SUBSCRIBE_INFO request to blackadder.
+    /**@brief this method will send a SUBSCRIBE_INFO request to Blackadder.
      *
      * 
      * prefix_id CANNOT be the empty string.
@@ -174,7 +190,7 @@ public:
      * @param str_opt_len the size of the provided bucket of bytes. When the IMPLICIT_RENDEZVOUS strategy is used str_opt_len should be FID_LEN.
      */
     void subscribe_info(const string&id, const string&prefix_id, unsigned char strategy, void *str_opt, unsigned int str_opt_len);
-    /**@brief this method will send a UNSUBSCRIBE_SCOPE request to blackadder.
+    /**@brief this method will send a UNSUBSCRIBE_SCOPE request to Blackadder.
      * 
      * If prefix_id is the empty string, the request is about a root scope.
      * 
@@ -189,7 +205,7 @@ public:
      * @param str_opt_len the size of the provided bucket of bytes. When the IMPLICIT_RENDEZVOUS strategy is used str_opt_len should be FID_LEN.
      */
     void unsubscribe_scope(const string&id, const string&prefix_id, unsigned char strategy, void *str_opt, unsigned int str_opt_len);
-    /**@brief this method will send a UNSUBSCRIBE_INFO request to blackadder.
+    /**@brief this method will send a UNSUBSCRIBE_INFO request to Blackadder.
      *
      * 
      * prefix_id CANNOT be the empty string.
@@ -205,7 +221,7 @@ public:
      * @param str_opt_len the size of the provided bucket of bytes. When the IMPLICIT_RENDEZVOUS strategy is used str_opt_len should be FID_LEN.
      */
     void unsubscribe_info(const string&id, const string&prefix_id, unsigned char strategy, void *str_opt, unsigned int str_opt_len);
-    /**@brief this method will send a PUBLISH_DATA request to blackadder.
+    /**@brief this method will send a PUBLISH_DATA request to Blackadder.
      * 
      * @param id the full identifier of the information item for which data is published.
      * @param strategy the dissemination strategy assigned to the request.
@@ -215,11 +231,21 @@ public:
      * @param data_len the size of the published data.
      */
     void publish_data(const string&id, unsigned char strategy, void *str_opt, unsigned int str_opt_len, void *data, unsigned int data_len);
-    /**@brief This method blocks until an event is received from blackadder.
+    /**@brief This method blocks until an event is received from Blackadder.
      * 
      * @param ev a reference to an Event which will be updated accordingly. An application can read the Event (and the data when the event is PUBLISHED_DATA) when the method unblocks.
      */
     void getEvent(Event &ev);
+    /**@brief Get event into buffer.
+     *
+     * If data is not NULL, the given buffer is used instead of allocating a new one.
+     * Note that the buffer attached to an Event will still be freed (with free()) when the Event is destroyed.
+     *
+     * @param ev Event object reference
+     * @param data pointer to data buffer
+     * @param data_len length of buffer
+     */
+    void getEventIntoBuf(Event &ev, void *data, unsigned int data_len);
     /**@brief This method will send a disconnect signal to Blackadder. 
      * 
      * In user space this is required so that Blackadder can then undo all requests the application has previously sent.
@@ -232,6 +258,9 @@ protected:
      * @param user_space Whether Blackadder runs in user or kernel space.
      */
     Blackadder(bool user_space);
+    /** @brief Get socket file descriptor.
+     */
+    inline const int get_fd() const { return sock_fd; };
 private:
     /**@brief create_and_send_buffers is called by all other service model related methods. It creates and sends the buffers to Blackadder.
      * 
@@ -250,7 +279,7 @@ private:
      */
 #if HAVE_USE_NETLINK
     struct sockaddr_nl s_nladdr, d_nladdr;
-#else
+#elif HAVE_USE_UNIX
     struct sockaddr_un s_nladdr, d_nladdr;
 #endif
     /**@brief a dummy buffer for peeking the actual expected buffer so that we can learn its size.
@@ -327,12 +356,14 @@ extern "C" {
         uint32_t nlmsg_pid;
     };
 }
+
+#define AF_BLACKADDER 134 /* XXX */
+#define PROTO_BLACKADDER 1 /* XXX */
 #endif
 
-#if !HAVE_USE_NETLINK
-#define ba_id2path(path, id)  snprintf((path), 100, "/tmp/blackadder.%05u", (id))	
+#if HAVE_USE_UNIX
+#define ba_id2path(path, id)  snprintf((path), 100, "/tmp/blackadder.%05u", (id))
 #if defined(__FreeBSD__) || defined(__OpenBSD__)
-
 inline int
 ba_path2id(const char *path) {
     const char *errstr = NULL;
@@ -342,5 +373,6 @@ ba_path2id(const char *path) {
 #else
 #define ba_path2id(path) atoi((path) + 16)
 #endif
-#endif
-#endif
+#endif /* HAVE_USE_UNIX */
+
+#endif /* BLACKADDER_HPP */

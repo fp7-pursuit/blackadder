@@ -22,10 +22,14 @@ public class test {
     public static void main(String args[]) {
         blackadder_java.Blackadder ba =
 	    blackadder_java.Blackadder.Instance(true);
-        ba.publish_scope("00001111".getBytes(), new byte[0],
+        String sid = "00001111";
+        String rid = "XXXXYYYY";
+        ba.publish_scope(sid.getBytes(), new byte[0],
                          BA.NODE_LOCAL, null);
-        ba.publish_info("XXXXYYYY".getBytes(), "00001111".getBytes(),
+        ba.publish_info(rid.getBytes(), sid.getBytes(),
                         BA.NODE_LOCAL, null);
+        ba.publish_data((sid+rid).getBytes(), BA.NODE_LOCAL, null,
+                        "Hello!".getBytes());
         ba.disconnect();
     }
 }

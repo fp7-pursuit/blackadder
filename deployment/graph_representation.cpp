@@ -21,20 +21,39 @@ GraphRepresentation::GraphRepresentation(Domain *_dm, bool autogenerate) {
     dm = _dm;
     if (autogenerate) {
         igraph_i_set_attribute_table(&igraph_cattribute_table);
+#if IGRAPH_V >= IGRAPH_V_0_6
+        igraph_barabasi_game(&igraph, dm->number_of_nodes, 1, 1,
+                             NULL, false, 1, true,
+                             IGRAPH_BARABASI_BAG, NULL);
+#else
         igraph_barabasi_game(&igraph, dm->number_of_nodes, 1,
-                NULL, false, true);
+                             NULL, false, true);
+#endif
     }
 }
 
 void GraphRepresentation::buildIGraphTopology() {
     int source_vertex_id, destination_vertex_id;
+    //int egress_id, ingress_id;
     igraph_i_set_attribute_table(&igraph_cattribute_table);
     igraph_empty(&igraph, 0, true);
     //cout << "iGraph: number of nodes: " << dm->number_of_nodes << endl;
     //cout << "iGraph: number number_of_connections nodes: " << dm->number_of_connections << endl;
-    for (int i = 0; i < dm->network_nodes.size(); i++) {
+    for (size_t i = 0; i < dm->network_nodes.size(); i++) {
         NetworkNode *nn = dm->network_nodes[i];
-        for (int j = 0; j < nn->connections.size(); j++) {
+        bool unconnected = (nn->connections.size() == 0); /* XXX */
+        if (unconnected) {
+            /* XXX: Create a temporary pseudo-connection for a node without any connections (only iLID).
+             * We do this so that the data structures for this node get initialized (below) in the same way as for connected nodes.
+             * Note that this probably makes sense mainly in a single-node scenario. */
+            cerr << "Warning: " << nn->label << " not connected" << endl;
+            NetworkConnection *nc = new NetworkConnection();
+            nc->src_label = nn->label;
+            nc->dst_label = nn->label;
+            nn->connections.push_back(nc);
+            unconnected = true;
+        }
+        for (size_t j = 0; j < nn->connections.size(); j++) {
             NetworkConnection *nc = nn->connections[j];
             map <string, int>::iterator index_it;
             /*find that node - if exists*/
@@ -46,6 +65,7 @@ void GraphRepresentation::buildIGraphTopology() {
                 igraph_add_vertices(&igraph, 1, 0);
                 reverse_node_index.insert(pair<string, int>(nc->src_label, source_vertex_id));
                 igraph_cattribute_VAS_set(&igraph, "NODEID", source_vertex_id, nc->src_label.c_str());
+                //igraph_cattribute_VAS_set(&igraph, "NODENAME", source_vertex_id, nn->name.c_str());
             } else {
                 source_vertex_id = (*index_it).second;
             }
@@ -57,21 +77,47 @@ void GraphRepresentation::buildIGraphTopology() {
                 igraph_add_vertices(&igraph, 1, 0);
                 reverse_node_index.insert(pair<string, int>(nc->dst_label, destination_vertex_id));
                 igraph_cattribute_VAS_set(&igraph, "NODEID", destination_vertex_id, nc->dst_label.c_str());
+                for (size_t j = 0; j < dm->network_nodes.size(); j++) {
+                    if (dm->network_nodes[j]->label == nc->dst_label) {
+                        //igraph_cattribute_VAS_set(&igraph, "NODENAME", destination_vertex_id, dm->network_nodes[j]->name.c_str());
+                        break;
+                    }
+                }
                 //cout << "added node " << nc->dst_label << " in the igraph" << endl;
             } else {
                 destination_vertex_id = (*index_it).second;
             }
-            /*add an edge in the graph*/
-            igraph_add_edge(&igraph, source_vertex_id, destination_vertex_id);
-            igraph_cattribute_EAS_set(&igraph, "LID", igraph_ecount(&igraph) - 1, nc->LID.to_string().c_str());
+            if (!unconnected) {
+                /*add an edge in the graph*/
+                igraph_add_edge(&igraph, source_vertex_id, destination_vertex_id);
+                igraph_cattribute_EAS_set(&igraph, "LID", igraph_ecount(&igraph) - 1, nc->LID.to_string().c_str());
+                if (dm->overlay_mode.compare("mac_ml") == 0) {
+                    igraph_cattribute_EAS_set(&igraph, "LTYPE", igraph_ecount(&igraph) - 1, nc->lnk_type.c_str());
+                }
+            }
+        }
+        if (unconnected) {
+            /* Remove temorary pseudo-connection. */
+            NetworkConnection *nc = nn->connections.back();
+            nn->connections.pop_back();
+            delete nc;
         }
     }
-    for (int i = 0; i < dm->network_nodes.size(); i++) {
+    for (size_t i = 0; i < dm->network_nodes.size(); i++) {
         NetworkNode *nn = dm->network_nodes[i];
-        int vertex_index = (*reverse_node_index.find(nn->label)).second;
+        map<string,int>::iterator index_it = reverse_node_index.find(nn->label);
+        if (index_it == reverse_node_index.end()) {
+            cerr << "Warning: " << nn->label << " not found in reverse node index map" << endl;
+            continue;
+        }
+        int vertex_index = index_it->second;
         igraph_cattribute_VAS_set(&igraph, "iLID", vertex_index, nn->iLid.to_string().c_str());
+        if (dm->overlay_mode.compare("mac_ml") == 0) {
+            igraph_cattribute_VAS_set(&igraph, "NTYPE", vertex_index, nn->type.c_str());
+        }
     }
 }
+
 
 Bitvector GraphRepresentation::calculateFID(string &source, string &destination) {
     int vertex_id;
@@ -81,11 +127,35 @@ Bitvector GraphRepresentation::calculateFID(string &source, string &destination)
     igraph_vector_t to_vector;
     igraph_vector_t *temp_v;
     igraph_integer_t eid;
-
+    const char *Ntype;
     /*find the vertex id in the reverse index*/
-    int from = (*reverse_node_index.find(source)).second;
+    map<string,int>::iterator index_it = reverse_node_index.find(source);
+    if (index_it == reverse_node_index.end()) {
+        cerr << "Warning: " << source << " not found in reverse node index map (source)" << endl;
+        return result; /* XXX */
+    }
+    int from = index_it->second;
+    if (dm->overlay_mode.compare("mac_ml") != 0) {
+//      cout << "Creating RVFIDs and TMFIDs for single layer topology..." << endl;
+    } else {
+        // compute RVFID and TMFID only to PN nodes not ON nodes
+        Ntype = igraph_cattribute_VAS(&igraph, "NTYPE", from);
+        //cout << "NTYPE IS: " << Ntype[0] << endl << endl;
+        if (Ntype[0] != 'P') {
+            for (int k = 0; k < dm->fid_len * 8; k++) {
+                (result)[dm->fid_len * 8 - k - 1].operator |= (false);
+            }
+            return result;
+        }
+        cout << "Creating RVFIDs and TMFIDs for multilayer topology..." << endl;
+    }
+    index_it = reverse_node_index.find(destination);
+    if (index_it == reverse_node_index.end()) {
+        cerr << "Warning: " << destination << " not found in reverse node index map (destination)" << endl;
+        return result; /* XXX */
+    }
     igraph_vector_init(&to_vector, 1);
-    VECTOR(to_vector)[0] = (*reverse_node_index.find(destination)).second;
+    VECTOR(to_vector)[0] = index_it->second;  // find vertex id of the destination node label
     /*initialize the sequence*/
     igraph_vs_vector(&vs, &to_vector);
     /*initialize the vector that contains pointers*/
@@ -95,14 +165,22 @@ Bitvector GraphRepresentation::calculateFID(string &source, string &destination)
     VECTOR(res)[0] = temp_v;
     igraph_vector_init(temp_v, 1);
     /*run the shortest path algorithm from "from"*/
+#if IGRAPH_V >= IGRAPH_V_0_6
+    igraph_get_shortest_paths(&igraph, &res, NULL, from, vs, IGRAPH_OUT);
+#else
     igraph_get_shortest_paths(&igraph, &res, from, vs, IGRAPH_OUT);
+#endif
     /*check the shortest path to each destination*/
     temp_v = (igraph_vector_t *) VECTOR(res)[0];
     //click_chatter("Shortest path from %s to %s", igraph_cattribute_VAS(&graph, "NODEID", from), igraph_cattribute_VAS(&graph, "NODEID", VECTOR(*temp_v)[igraph_vector_size(temp_v) - 1]));
 
     /*now let's "or" the FIDs for each link in the shortest path*/
     for (int j = 0; j < igraph_vector_size(temp_v) - 1; j++) {
+#if IGRAPH_V >= IGRAPH_V_0_6
+        igraph_get_eid(&igraph, &eid, VECTOR(*temp_v)[j], VECTOR(*temp_v)[j + 1], true, true);
+#else
         igraph_get_eid(&igraph, &eid, VECTOR(*temp_v)[j], VECTOR(*temp_v)[j + 1], true);
+#endif
         //click_chatter("node %s -> node %s", igraph_cattribute_VAS(&graph, "NODEID", VECTOR(*temp_v)[j]), igraph_cattribute_VAS(&graph, "NODEID", VECTOR(*temp_v)[j + 1]));
         //click_chatter("link: %s", igraph_cattribute_EAS(&graph, "LID", eid));
         string LID(igraph_cattribute_EAS(&igraph, "LID", eid), dm->fid_len * 8);
@@ -131,7 +209,7 @@ Bitvector GraphRepresentation::calculateFID(string &source, string &destination)
 
 void GraphRepresentation::calculateRVFIDs() {
     string RVLabel = dm->RV_node->label;
-    for (int i = 0; i < dm->network_nodes.size(); i++) {
+    for (size_t i = 0; i < dm->network_nodes.size(); i++) {
         NetworkNode *nn = dm->network_nodes[i];
         nn->FID_to_RV = calculateFID(nn->label, RVLabel);
     }
@@ -139,7 +217,7 @@ void GraphRepresentation::calculateRVFIDs() {
 
 void GraphRepresentation::calculateTMFIDs() {
     string TMLabel = dm->TM_node->label;
-    for (int i = 0; i < dm->network_nodes.size(); i++) {
+    for (size_t i = 0; i < dm->network_nodes.size(); i++) {
         NetworkNode *nn = dm->network_nodes[i];
         nn->FID_to_TM = calculateFID(nn->label, TMLabel);
     }
@@ -191,7 +269,11 @@ void GraphRepresentation::ChooseTheBestTMRVNode(void) {
 
     numofvertices = igraph_vcount(&igraph);
     igraph_matrix_init(&res, numofvertices, numofvertices);
+#if IGRAPH_V >= IGRAPH_V_0_6
+    igraph_shortest_paths(&igraph, &res, igraph_vss_all(), igraph_vss_all(), IGRAPH_OUT);
+#else
     igraph_shortest_paths(&igraph, &res, igraph_vss_all(), IGRAPH_OUT);
+#endif
 
     for (i = 0; i < numofvertices; i++) {
         tmp = 0;
@@ -213,7 +295,7 @@ void GraphRepresentation::ChooseTheBestTMRVNode(void) {
 }
 
 void GraphRepresentation::OutputLeafVertices(string filename) {
-    int degree, i;
+    int degree;
     ofstream degreeonefile;
     NetworkNode *nn = NULL;
 
@@ -223,7 +305,7 @@ void GraphRepresentation::OutputLeafVertices(string filename) {
 
     degreeonefile.open((dm->write_conf + filename).c_str());
     degreeonefile << "network = { \n\n nodes = (";
-    for (i = 0; i < dm->network_nodes.size(); i++) {
+    for (size_t i = 0; i < dm->network_nodes.size(); i++) {
         nn = dm->network_nodes[i];
         degree = VECTOR(vid_res)[(*reverse_node_index.find(nn->label)).second];
         if (degree == 1) {
@@ -269,7 +351,7 @@ void GraphRepresentation::BuildInputMap() {
     igraph_vector_init(&edge_vector, 1);
     igraph_get_edgelist(&igraph, &edge_vector, true);
     int z = igraph_ecount(&igraph);
-    for (i = 0; i < dm->number_of_nodes; i++) {
+    for (unsigned int i = 0; i < dm->number_of_nodes; i++) {
         cout << "Node " << dm->network_nodes[i]->label << " -- IP :" << dm->network_nodes[i]->testbed_ip << endl;
         ;
     }

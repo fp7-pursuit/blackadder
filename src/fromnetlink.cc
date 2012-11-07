@@ -13,42 +13,59 @@
  */
 #include "fromnetlink.hh"
 
-#if !HAVE_USE_NETLINK
+#if HAVE_USE_UNIX
+#include <click/cxxprotect.h>
+CLICK_CXX_PROTECT
 #include <sys/ioctl.h>
+CLICK_CXX_UNPROTECT
+#include <click/cxxunprotect.h>
 #endif
 
 CLICK_DECLS
 
-#if CLICK_LINUXMODULE
+#if CLICK_LINUXMODULE || CLICK_BSDMODULE
 static Vector<Packet *> *down_queue;
+static struct mutex down_mutex;
 static Task *_from_netlink_task;
 static unsigned long _from_netlink_element_state;
-static struct mutex down_mutex;
-static PIDSet *_pid_set;
 #else
 char fake_buf[1];
 #endif
 
 
-#if CLICK_LINUXMODULE
+#if CLICK_LINUXMODULE || CLICK_BSDMODULE
 
-void nl_callback(struct sk_buff *skb) {
-    struct pid *_pid;
-    unsigned long irq_flags;
-    int type, flags, nlmsglen, skblen, pid;
+# if CLICK_LINUXMODULE
+void nl_callback(struct sk_buff *skb)
+# else
+static void nl_callback(struct mbuf *m)
+# endif
+{
+    int type, flags, nlmsglen, skblen;
     struct nlmsghdr *nlh;
 
+# if CLICK_LINUXMODULE
     skblen = skb->len;
     if (skblen < sizeof (*nlh)) {
         return;
     }
     nlh = nlmsg_hdr(skb);
+# else /* CLICK_BSDMODULE */
+    Packet *p = Packet::make(m);
+    skblen = p->length(); /* XXX */
+    if (skblen < sizeof(*nlh)) {
+        p->kill();
+        return;
+    }
+    nlh = (struct nlmsghdr *)p->data();
+# endif
     nlmsglen = nlh->nlmsg_len;
     if (nlmsglen < sizeof (*nlh) || skblen < nlmsglen) {
         return;
     }
     flags = nlh->nlmsg_flags;
     type = nlh->nlmsg_type;
+# if CLICK_LINUXMODULE
 #if HAVE_SKB_DST_DROP
     skb_dst_drop(skb);
 #else
@@ -60,6 +77,7 @@ void nl_callback(struct sk_buff *skb) {
     skb_orphan(skb);
     skb = skb_realloc_headroom(skb, 50);
     Packet *p = Packet::make(skb);
+# endif
 
     /*pull the netlink header*/
     p->pull(sizeof (nlmsghdr));
@@ -68,19 +86,12 @@ void nl_callback(struct sk_buff *skb) {
     mutex_lock(&down_mutex);
     down_queue->push_front(p);
     _from_netlink_task->reschedule();
+# if CLICK_LINUXMODULE
     set_bit(TASK_IS_SCHEDULED, &_from_netlink_element_state);
-    /*get the struct *pid*/
-    _pid = task_pid(current);
-    /*get a reference to that task*/
-    //put_pid seems not exported???!!! so i will not use get_pid either..May the god (of kernel) help me with that
-    //get_pid(_pid);
-    /*insert it to the hash set*/
-    PIDSetItem pid_set_item = PIDSetItem(_pid);
-    pid_set_item._pid_no = current->pid;
-    /*this must be protected as well...the timer reads it*/
-    _pid_set->find_insert(pid_set_item);
+# else
+    atomic_set_long((volatile u_long *)(&_from_netlink_element_state), 1);
+# endif
     mutex_unlock(&down_mutex);
-    /*Done!*/
 }
 #endif
 
@@ -91,39 +102,49 @@ FromNetlink::~FromNetlink() {
     click_chatter("FromNetlink: destroyed!");
 }
 
-int FromNetlink::configure(Vector<String> &conf, ErrorHandler *errh) {
+int FromNetlink::configure(Vector<String> &conf, ErrorHandler */*errh*/) {
     netlink_element = (Netlink *) cp_element(conf[0], this);
     //click_chatter("FromNetlink: configured!");
     return 0;
 }
 
+#if CLICK_LINUXMODULE || CLICK_BSDMODULE
 int FromNetlink::initialize(ErrorHandler *errh) {
-#if CLICK_LINUXMODULE
     down_queue = new Vector<Packet *>();
-    _pid_set = new PIDSet();
+# if CLICK_LINUXMODULE
     netlink_element->nl_sk = netlink_kernel_create(&init_net, NETLINK_BADDER, 0, nl_callback, NULL, THIS_MODULE);
+    if (netlink_element->nl_sk == NULL) {
+        delete down_queue;
+        return -1;
+    }
+# else
+    ba_socket_init(nl_callback);
+# endif
     _task = new Task(this);
     _from_netlink_task = _task;
     _from_netlink_element_state = 0;
+# if CLICK_LINUXMODULE
     mutex_init(&down_mutex);
+# else
+    mtx_init(&down_mutex, "ba_down_mutex", NULL, MTX_DEF);
+# endif
     ScheduleInfo::initialize_task(this, _task, errh);
-    _timer = new Timer(this);
-    _timer->initialize(this);
-    _timer->schedule_after_sec(1);
-#else
-    add_select(netlink_element->fd, SELECT_READ);
-#endif
     //click_chatter("FromNetlink: initialized!");
     return 0;
 }
+#else
+int FromNetlink::initialize(ErrorHandler */*errh*/) {
+    add_select(netlink_element->fd, SELECT_READ);
+    //click_chatter("FromNetlink: initialized!");
+    return 0;
+}
+#endif
 
 void FromNetlink::cleanup(CleanupStage stage) {
     if (stage >= CLEANUP_INITIALIZED) {
-#if CLICK_LINUXMODULE
+#if CLICK_LINUXMODULE || CLICK_BSDMODULE
         int down_queue_size;
-        /*delete the timer*/
         mutex_lock(&down_mutex);
-        _timer->clear();
         _task->unschedule();
         down_queue_size = down_queue->size();
         for (int i = 0; i < down_queue_size; i++) {
@@ -131,66 +152,42 @@ void FromNetlink::cleanup(CleanupStage stage) {
             down_queue->pop_back();
         }
         /*delete queue*/
-        /*assume that all pids have been previously finished*/
         delete down_queue;
-        delete _pid_set;
-        delete _timer;
         delete _task;
+# if CLICK_LINUXMODULE
         mutex_unlock(&down_mutex);
+# else
+        mtx_destroy(&down_mutex);
+# endif
 #endif
     }
     click_chatter("FromNetlink: Cleaned Up!");
 }
 
-#if CLICK_LINUXMODULE
-
-void FromNetlink::run_timer(Timer *_timer) {
-    WritablePacket *newPacket;
-    unsigned char type;
-    struct pid *_pid;
-    struct task_struct *_ts;
-    mutex_lock(&down_mutex);
-    for (PIDSetIter it = _pid_set->begin(); it != _pid_set->end(); it++) {
-        _pid = (*it)._pidpointer;
-#if LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 24)
-        _ts = find_task_by_pid((*it)._pid_no);
-#elif LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 35)
-	_ts = pid_task(_pid, PIDTYPE_PID);
-#else
-        _ts = get_pid_task(_pid, PIDTYPE_PID);
-#endif
-        if (_ts == NULL) {
-            click_chatter("task %d is dead!!!", (*it)._pid_no);
-            _pid_set->erase(it);
-            //put_pid((*it)._pidpointer);//not exported??
-            newPacket = Packet::make(30, NULL, sizeof (type), 0);
-            type = DISCONNECT;
-            newPacket->set_anno_u32(0, (*it)._pid_no);
-            memcpy(newPacket->data(), &type, sizeof (type));
-            output(0).push(newPacket);
-        }
-    }
-    mutex_unlock(&down_mutex);
-    _timer->schedule_after_sec(5);
-}
-#endif
-
-#if CLICK_LINUXMODULE
+#if CLICK_LINUXMODULE || CLICK_BSDMODULE
 
 bool FromNetlink::run_task(Task *t) {
-    int ret;
     Packet *down_packet = NULL;
-    int pid;
+# if CLICK_LINUXMODULE
     clear_bit(TASK_IS_SCHEDULED, &_from_netlink_element_state);
+# else
+    atomic_clear_long((volatile u_long *)(&_from_netlink_element_state), 1);
+# endif
     mutex_lock(&down_mutex);
     while (down_queue->size() > 0) {
         down_packet = down_queue->at(down_queue->size() - 1);
         down_queue->pop_back();
         output(0).push(down_packet);
     }
+# if CLICK_LINUXMODULE
     if (test_bit(TASK_IS_SCHEDULED, &_from_netlink_element_state) == 1) {
         t->fast_reschedule();
     }
+# else
+    if ((*(volatile u_long *)(&_from_netlink_element_state)) & 1) {
+        t->fast_reschedule();
+    }
+# endif
     mutex_unlock(&down_mutex);
     return true;
 }
@@ -198,28 +195,34 @@ bool FromNetlink::run_task(Task *t) {
 
 void FromNetlink::selected(int fd, int mask) {
     WritablePacket *newPacket;
-    int total_buf_size;
+    int total_buf_size = -1;
     int bytes_read;
     if ((mask & SELECT_READ) == SELECT_READ) {
         /*read from the socket*/
-#if HAVE_USE_NETLINK
+# ifdef __linux__
         total_buf_size = recv(fd, fake_buf, 1, MSG_PEEK | MSG_TRUNC | MSG_WAITALL);
-#else
-        total_buf_size = -1;
-        if (recv(fd, fake_buf, 1, MSG_PEEK | MSG_DONTWAIT) < 0 || ioctl(fd, FIONREAD, &total_buf_size) < 0) {
+# else
+#  ifdef __APPLE__
+        socklen_t _option_len = sizeof(total_buf_size);
+        if (recv(fd, fake_buf, 1, MSG_PEEK | MSG_DONTWAIT) < 0 || getsockopt(fd, SOL_SOCKET, SO_NREAD, &total_buf_size, &_option_len) < 0)
+#  else
+        if (recv(fd, fake_buf, 1, MSG_PEEK | MSG_DONTWAIT) < 0 || ioctl(fd, FIONREAD, &total_buf_size) < 0)
+#  endif
+        {
             click_chatter("recv/ioctl: %d", errno);
             return;
         }
-#endif
+# endif
         if (total_buf_size < 0) {
-            click_chatter("HMmmm");
+            click_chatter("Hmmm");
             return;
         }
         newPacket = Packet::make(100, NULL, total_buf_size, 100);
         bytes_read = recv(fd, newPacket->data(), newPacket->length(), MSG_WAITALL);
         if (bytes_read > 0) {
             if ((uint32_t)bytes_read < newPacket->length()) {
-                /* truncate to actual length */
+                /* truncate to actual length (if total_buf_size > bytes_read
+                   despite MSG_WAITALL) */
                 newPacket->take(newPacket->length() - bytes_read);
             }
             struct nlmsghdr *nlh = (struct nlmsghdr *) newPacket->data();
@@ -228,6 +231,7 @@ void FromNetlink::selected(int fd, int mask) {
             newPacket->set_anno_u32(0, nlh->nlmsg_pid);
             output(0).push(newPacket);
         } else {
+            /* recv() returns -1 on error. We treat 0 and -N similarly. */
             click_chatter("recv returned %d", bytes_read);
             newPacket->kill();
         }

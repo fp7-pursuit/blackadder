@@ -28,7 +28,7 @@ int main(int argc, char *argv[])
 {
     const char sid[] = { 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0B };
     const char rid[] = { 0x0C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0D };
-    unsigned char strategy = NODE_LOCAL;
+    unsigned char strategy = DOMAIN_LOCAL; /*NODE_LOCAL;*/
     nb_ba_handle ba;
 
     if (argc >= 2)
@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
     nb_ba_set_callback(ba, event_handler);
 
     nb_ba_subscribe_info(ba, rid, sizeof(rid), sid, sizeof(sid),
-                         NODE_LOCAL, (void *)0, 0);
+                         strategy, (void *)0, 0);
 
     nb_ba_join(ba);
     nb_ba_disconnect(ba);

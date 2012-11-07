@@ -27,6 +27,16 @@
 #include "bitvector.hpp"
 #include "blackadder_defs.h"
 
+
+/* XXX: Try to figure out igraph version based on very simple assumptions. */
+#define IGRAPH_V_0_6   60
+#define IGRAPH_V_0_5   50
+#ifdef IGRAPH_VERSION
+# define IGRAPH_V IGRAPH_V_0_6
+#else /* !defined(IGRAPH_VERSION) */
+# define IGRAPH_V IGRAPH_V_0_5
+#endif
+
 using namespace std;
 
 /**@brief (Topology Manager) This is a representation of the network topology (using the iGraph library) for the Topology Manager.

@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
     const char sid[] = { 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0B };
     const char rid[] = { 0x0C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0D };
     char id[sizeof(sid)+sizeof(rid)];
-    unsigned char strategy = NODE_LOCAL;
+    unsigned char strategy = DOMAIN_LOCAL; /*NODE_LOCAL;*/
     ba_handle ba;
 
     memcpy(id, sid, sizeof(sid));

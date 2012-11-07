@@ -7,8 +7,8 @@ all:
 	$(CXX) $(CXXFLAGS) nb_subscriber.cpp -o nb_subscriber $(LDFLAGS) -lblackadder -lpthread
 	$(CXX) $(CXXFLAGS) broadcast_subscriber.cpp -o broadcast_subscriber $(LDFLAGS) -lblackadder -lpthread
 	$(CXX) $(CXXFLAGS) broadcast_publisher.cpp -o broadcast_publisher $(LDFLAGS) -lblackadder -lpthread
-	$(CXX) $(CXXFLAGS) algid_publisher.cpp -o algid_publisher $(LDFLAGS) -lblackadder -lpthread -lssl
-	$(CXX) $(CXXFLAGS) algid_subscriber.cpp -o  $(LDFLAGS) algid_subscriber -lblackadder -lpthread -lssl
+	$(CXX) $(CXXFLAGS) algid_publisher.cpp -o algid_publisher $(LDFLAGS) -lblackadder -lpthread -lcrypto
+	$(CXX) $(CXXFLAGS) algid_subscriber.cpp -o algid_subscriber $(LDFLAGS) -lblackadder -lpthread -lcrypto
 	$(CXX) $(CXXFLAGS) nb_channel_publisher.cpp -o nb_channel_publisher $(LDFLAGS) -lblackadder -lpthread
 	$(CXX) $(CXXFLAGS) nb_channel_subscriber.cpp -o nb_channel_subscriber $(LDFLAGS) -lblackadder -lpthread
 

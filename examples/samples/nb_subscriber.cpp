@@ -51,7 +51,7 @@ void eventHandler(Event *ev) {
                 duration.tv_usec = end_tv.tv_usec + 1000000 - start_tv.tv_usec;
                 duration.tv_sec--;
             }
-            printf("duration: %ld seconds and %d microseconds\n\n", duration.tv_sec, duration.tv_usec);
+            printf("duration: %ld seconds and %ld microseconds\n\n", duration.tv_sec, duration.tv_usec);
             float left = counter * ((float) payload_size / (float) (1024 * 1024));
             float right = ((float) ((duration.tv_sec * 1000000) + duration.tv_usec)) / 1000000;
             cout << "counter: " << counter << endl;

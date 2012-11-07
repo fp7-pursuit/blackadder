@@ -20,12 +20,14 @@
 
 #include <click/straccum.hh>
 
+CLICK_DECLS
+
 class RemoteHost;
 class Scope;
 class InformationItem;
 
 /**
- * @brief (blackadder Core) An InformationItem represents an item that exists somewhere in the information graph managed by a rendezvous element.
+ * @brief (Blackadder Core) An InformationItem represents an item that exists somewhere in the information graph managed by a rendezvous element.
  * 
  * It is not the same as an ActivePublication. InformationItem and Scope are managed by the rendezvous element, which knows the whole graph structure.
  * So an InformationItem keeps track of its place in the graph by having pointers to its father scopes. Note that only RemoteHost objects are used here. 
@@ -122,5 +124,6 @@ public:
     unsigned char strategy;
 };
 
+CLICK_ENDDECLS
 #endif
 

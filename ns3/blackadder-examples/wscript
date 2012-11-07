@@ -1,0 +1,8 @@
+## -*- Mode: python; py-indent-offset: 4; indent-tabs-mode: nil; coding: utf-8; -*-
+
+def build(bld):
+    obj = bld.create_ns3_program('example1', ['core', 'point-to-point', 'blackadder', 'applications'])
+    obj.source = ['example1.cc', 'publisher.cc','subscriber.cc',]
+
+    obj = bld.create_ns3_program('example2', ['core', 'point-to-point', 'blackadder', 'applications'])
+    obj.source = ['example2.cc', 'publisher.cc','subscriber.cc',]

@@ -3,9 +3,9 @@
 
 # Autoconf initialisation.
 AC_PREREQ([2.67])
-AC_INIT([blackadder], [0.2], [pursuit-code@hiit.fi])
+AC_INIT([blackadder], [0.3], [pursuit-code@hiit.fi])
 AC_SUBST(MAJOR, 0)
-AC_SUBST(MINOR, 2)
+AC_SUBST(MINOR, 3)
 #AC_CONFIG_SRCDIR([blackadder.cpp])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_AUX_DIR([config])
@@ -73,6 +73,19 @@ if test "x$enable_ruby" = xyes; then
 fi
 
 if test "x$enable_java" = xyes; then
+    if test "x$HOSTOS" = xfreebsd; then
+        JAVA_INCLUDES="-I/usr/local/openjdk6/include -I/usr/local/openjdk6/include/freebsd" # XXX
+    else
+        JAVAC=javac # XXX
+        AX_JNI_INCLUDE_DIR
+        JAVA_INCLUDES=""
+        for JNI_INCLUDE_DIR in $JNI_INCLUDE_DIRS
+        do
+            JAVA_INCLUDES="$JAVA_INCLUDES -I$JNI_INCLUDE_DIR"
+        done
+    fi
+    AC_SUBST(JAVA_INCLUDES)
+
     AC_PATH_PROG([JAVAC], [javac], [javac]) # XXX
 fi
 

@@ -1,7 +1,7 @@
 #!/bin/sh -m
 
 #-
-# Copyright (C) 2011  Oy L M Ericsson Ab, NomadicLab
+# Copyright (C) 2011-2012  Oy L M Ericsson Ab, NomadicLab
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 as
@@ -13,9 +13,13 @@
 # See LICENSE and COPYING for more details.
 #
 
+#export PYTHONPATH=$HOME/usr/lib/python2.7/site-packages
+
 python sub_and_send.py &
-PID=$!
-echo "PID="$PID
+PY_PID=$!
+echo "PY_PID="$PY_PID
 sleep 0.5
-vlc -4 udp://@:56492
-kill -s INT $PID
+vlc udp://@:56492
+kill -s INT $PY_PID
+sleep 2
+kill $PY_PID

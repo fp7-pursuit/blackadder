@@ -21,7 +21,7 @@
 CLICK_DECLS
 
 /**
- * @brief (blackadder Core) The LocalHost class represents a local software entity that accesses Blackadder's world using the provided service model.
+ * @brief (Blackadder Core) The LocalHost class represents a local software entity that accesses Blackadder's world using the provided service model.
  * 
  * Such entity can be a user-space application (or a kernel module) as well as other Click Elements (for instance the rendezvous element).
  * @param type the type of the software entity. LOCAL_PROCESS for an application or a kernel module, CLICK_MODULE for a click element.

@@ -12,3 +12,20 @@ Changes in Blackadder v0.2.1:
 - Non-blocking Python and Ruby API fixes
 - Improved fragmentation support
 - Documentation improvements
+
+Changes in Blackadder v0.3:
+- ns-3 support
+- FreeBSD kernel port
+- Linux 3.2 kernel support
+- Packet-level authentication support
+- Multi-layer support in the deployment tool
+- Local deployment options
+- Deployment for different operating systems
+- igraph 0.6 support
+- Non-blocking SWIG Java API
+- Common Makefile
+- Access control implementation
+- More examples
+- Various fixes and improvements
+- Documentation updated
+

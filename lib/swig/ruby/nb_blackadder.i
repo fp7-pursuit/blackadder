@@ -70,11 +70,11 @@ void *_to_malloc_buffer(void *data, unsigned int data_len)
 %}
 
 %inline %{
-struct Malloc_buffer {
+struct MallocBuffer {
     void *data;
     int data_len;
 };
-typedef struct Malloc_buffer malloc_buffer_t;
+typedef struct MallocBuffer malloc_buffer_t;
 
 /*
  * Copy data_len bytes from data to a newly allocated buffer. This

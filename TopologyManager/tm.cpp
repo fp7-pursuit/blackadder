@@ -21,9 +21,10 @@
 
 using namespace std;
 
-Blackadder *ba;
-TMIgraph tm_igraph;
-pthread_t event_listener;
+Blackadder *ba = NULL;
+TMIgraph *tm_igraph = NULL;
+pthread_t _event_listener, *event_listener = NULL;
+sig_atomic_t listening = 1;
 
 string req_id = "FFFFFFFFFFFFFFFE";
 string req_prefix_id = string();
@@ -48,7 +49,7 @@ void handleRequest(char *request, int request_len) {
     int idx = 0;
     unsigned char strategy;
     memcpy(&request_type, request, sizeof (request_type));
-    memcpy(&strategy + sizeof (request_type), request, sizeof (strategy));
+    memcpy(&strategy, request + sizeof (request_type), sizeof (strategy));
     if (request_type == MATCH_PUB_SUBS) {
         /*this a request for topology formation*/
         memcpy(&no_publishers, request + sizeof (request_type) + sizeof (strategy), sizeof (no_publishers));
@@ -69,7 +70,7 @@ void handleRequest(char *request, int request_len) {
             subscribers.insert(nodeID);
         }
         cout << endl;
-        tm_igraph.calculateFID(publishers, subscribers, result);
+        tm_igraph->calculateFID(publishers, subscribers, result);
         /*notify publishers*/
         for (map_iter = result.begin(); map_iter != result.end(); map_iter++) {
             if ((*map_iter).second == NULL) {
@@ -82,7 +83,7 @@ void handleRequest(char *request, int request_len) {
                 memcpy(response + sizeof (response_type), request + ids_index, request_len - ids_index);
                 /*find the FID to the publisher*/
                 string destination = (*map_iter).first;
-                Bitvector *FID_to_publisher = tm_igraph.calculateFID(tm_igraph.nodeID, destination);
+                Bitvector *FID_to_publisher = tm_igraph->calculateFID(tm_igraph->nodeID, destination);
                 string response_id = resp_bin_prefix_id + (*map_iter).first;
                 ba->publish_data(response_id, IMPLICIT_RENDEZVOUS, (char *) FID_to_publisher->_data, FID_LEN, response, response_size);
                 delete FID_to_publisher;
@@ -98,7 +99,7 @@ void handleRequest(char *request, int request_len) {
                 memcpy(response + sizeof (response_type) + request_len - ids_index, (*map_iter).second->_data, FID_LEN);
                 /*find the FID to the publisher*/
                 string destination = (*map_iter).first;
-                Bitvector *FID_to_publisher = tm_igraph.calculateFID(tm_igraph.nodeID, destination);
+                Bitvector *FID_to_publisher = tm_igraph->calculateFID(tm_igraph->nodeID, destination);
                 string response_id = resp_bin_prefix_id + (*map_iter).first;
                 ba->publish_data(response_id, IMPLICIT_RENDEZVOUS, (char *) FID_to_publisher->_data, FID_LEN, response, response_size);
                 delete (*map_iter).second;
@@ -111,7 +112,7 @@ void handleRequest(char *request, int request_len) {
         memcpy(&no_subscribers, request + sizeof (request_type) + sizeof (strategy), sizeof (no_subscribers));
         for (int i = 0; i < (int) no_subscribers; i++) {
             nodeID = string(request + sizeof (request_type) + sizeof (strategy) + sizeof (no_subscribers) + idx, PURSUIT_ID_LEN);
-            Bitvector *FID_to_subscriber = tm_igraph.calculateFID(tm_igraph.nodeID, nodeID);
+            Bitvector *FID_to_subscriber = tm_igraph->calculateFID(tm_igraph->nodeID, nodeID);
             int response_size = request_len - sizeof(strategy) - sizeof (no_subscribers) - no_subscribers * PURSUIT_ID_LEN + FID_LEN;
             int ids_index = sizeof (request_type) + sizeof (strategy) + sizeof (no_subscribers) + no_subscribers * PURSUIT_ID_LEN;
             char *response = (char *) malloc(response_size);
@@ -129,25 +130,26 @@ void handleRequest(char *request, int request_len) {
 
 void *event_listener_loop(void *arg) {
     Blackadder *ba = (Blackadder *) arg;
-    while (true) {
+    while (listening) {
         Event ev;
         ba->getEvent(ev);
         if (ev.type == PUBLISHED_DATA) {
             //cout << "TM: received a request...processing now" << endl;
             handleRequest((char *) ev.data, ev.data_len);
+        } else if (ev.type == UNDEF_EVENT && !listening) {
+            cout << "TM: final event" << endl;
         } else {
             cout << "TM: I am not expecting any other notification...FATAL" << endl;
         }
     }
+    return NULL;
 }
 
 void sigfun(int sig) {
+    listening = 0;
+    if (event_listener)
+        pthread_cancel(*event_listener);
     (void) signal(SIGINT, SIG_DFL);
-    cout << "TM: disconnecting" << endl;
-    ba->disconnect();
-    delete ba;
-    cout << "TM: exiting" << endl;
-    exit(0);
 }
 
 int main(int argc, char* argv[]) {
@@ -157,25 +159,28 @@ int main(int argc, char* argv[]) {
         cout << "TM: the topology file is missing" << endl;
         exit(0);
     }
+    tm_igraph = new TMIgraph();
     /*read the graphML file that describes the topology*/
-    if (tm_igraph.readTopology(argv[1]) < 0) {
+    if (tm_igraph->readTopology(argv[1]) < 0) {
         cout << "TM: couldn't read topology file...aborting" << endl;
         exit(0);
     }
-    cout << "Blackadder Node: " << tm_igraph.nodeID << endl;
+    cout << "Blackadder Node: " << tm_igraph->nodeID << endl;
     /***************************************************/
-    if (tm_igraph.mode.compare("kernel") == 0) {
+    if (tm_igraph->mode.compare("kernel") == 0) {
         ba = Blackadder::Instance(false);
     } else {
         ba = Blackadder::Instance(true);
     }
-    pthread_create(&event_listener, NULL, event_listener_loop, (void *) ba);
+    pthread_create(&_event_listener, NULL, event_listener_loop, (void *) ba);
+    event_listener = &_event_listener;
     ba->subscribe_scope(req_bin_id, req_bin_prefix_id, IMPLICIT_RENDEZVOUS, NULL, 0);
 
-    pthread_join(event_listener, NULL);
+    pthread_join(*event_listener, NULL);
     cout << "TM: disconnecting" << endl;
     ba->disconnect();
     delete ba;
+    delete tm_igraph;
     cout << "TM: exiting" << endl;
     return 0;
 }

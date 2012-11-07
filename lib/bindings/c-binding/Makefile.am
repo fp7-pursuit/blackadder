@@ -18,3 +18,6 @@ libblackadder_c_la_CXXFLAGS = $(DEBUGFLAGS)
 libblackadder_c_la_LDFLAGS = -version-info $(MAJOR):$(MINOR) -pthread
 
 include_HEADERS = blackadder_c.h nb_blackadder_c.h
+
+install-exec-hook:
+	test -n "$(LDCONFIG)" -a "$(libdir)" = "/usr/local/lib" && $(LDCONFIG) /usr/local/lib || true # XXX

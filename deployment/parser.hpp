@@ -48,6 +48,12 @@ public:
      * @return -1 if any exception is caught during the execution.
      */
     int buildNetworkDomain();
+    /**@brief It builds the custom network representation for an NS3 simulation - different stuff is expected in the topology description.
+     * 
+     * It reads the configuration file into a Config object, which is then used to read global parameters, node and connection configuration.
+     * @return -1 if any exception is caught during the execution.
+     */
+    int buildNS3NetworkDomain();
     /**@brief reads all mandatory global paramaters of the topology.
      * 
      * These parameters are:
@@ -68,6 +74,11 @@ public:
      * @return 
      */
     int getGlobalDomainParameters();
+    /**@brief reads all mandatory global paramaters of the topology.
+     * 
+     * @return 
+     */
+    int getNS3GlobalDomainParameters();
     /**@brief It parses a node configuration and maps the configured properties to a NetowrkNode.
      * 
      * it parses and checks:
@@ -77,7 +88,11 @@ public:
      * testbed_ip: the IP address of the node in the testbed. It will be used to ssh the node or scp files to it.
      * 
      * running_mode: whether blackadder is running in user or kernel mode in this node.
-     * 
+     *
+     * operating_system: operating system in the node. Supported systems: Linux (default), FreeBSD, Darwin.
+     *
+     * name: the node's name (optional). E.g., a brief, human-readable and descriptive name.
+     *
      * role: the roles of a NetworkNode. A node can be an RV or/and TM. All other nodes are treated the same way. Only one TM and RV must exist in a Domain.
      * 
      * connections: For each network connection, a NetworkConnection is a added in the NetworkNode, using the addConnection() method.
@@ -86,6 +101,8 @@ public:
      * @return -1 if something is wrong.
      */
     int addNode(const Setting &node);
+    int addNS3Node(const Setting &node);
+    int addNS3Application(const Setting &application, NetworkNode *nn);
     /**@brief It parses and checks a connection configuration and maps the configured properties to a NetworkConnection.
      * 
      * it parses and checks:
@@ -111,6 +128,7 @@ public:
      * @return -1 if something is wrong.
      */
     int addConnection(const Setting &connection, NetworkNode *nn);
+    int addNS3Connection(const Setting &connection, NetworkNode *nn);
 
     /**@brief It builds the custom network representation using the barabasi albert model with the nodes available from the configuration file.
      * 

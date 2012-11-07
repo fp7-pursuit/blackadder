@@ -555,6 +555,7 @@ PACKAGE_URL=''
 
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
+element_libs
 BUILD_BSDMODULE
 BUILD_LINUXMODULE
 BUILD_USERLEVEL
@@ -607,6 +608,7 @@ with_click
 enable_userlevel
 enable_linuxmodule
 enable_bsdmodule
+enable_pla
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1227,6 +1229,7 @@ Optional Features:
   --enable-linuxmodule    enable Linux kernel driver
   --enable-bsdmodule      enable FreeBSD kernel driver
                           [Default drivers are those Click supports.]
+  --enable-pla            enable PLA support
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -1729,6 +1732,23 @@ fi
 
 
 
+
+
+
+
+
+# Check whether --enable-pla was given.
+if test "${enable_pla+set}" = set; then :
+  enableval=$enable_pla; :
+else
+  enable_pla=no
+fi
+
+if test "x$enable_pla" = xyes; then
+    $as_echo "#define HAVE_USE_PLA 1" >>confdefs.h
+
+    element_libs="$element_libs -lpla"
+fi
 
 
 

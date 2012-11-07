@@ -24,19 +24,56 @@
         $2 = 0;
     }
     else if (TYPE($input) == T_STRING) {
-        $1 = ($1_type)(RSTRING_PTR($input));
+        $1 = (uint8_t *)(RSTRING_PTR($input));
         $2 = ($2_type)(RSTRING_LEN($input));
     }
-    else if (SWIG_CheckConvert($input, SWIGTYPE_p_Malloc_buffer) != 0) {
+    else if (SWIG_CheckConvert($input, SWIGTYPE_p_MallocBuffer) != 0) {
         malloc_buffer_t *mb;
         int res;
         res = SWIG_ConvertPtr($input, (void **)&mb,
-                              SWIGTYPE_p_Malloc_buffer, 0);
+                              SWIGTYPE_p_MallocBuffer, 0);
         if (!SWIG_IsOK(res)) {
             %argument_fail(res, "(void *BYTES, unsigned int LEN)",
                            $symname, $argnum);
         }
-        $1 = ($1_type)mb->data;
+        $1 = (uint8_t *)mb->data;
+        $2 = ($2_type)mb->data_len;
+    }
+    else {
+        %argument_fail(SWIG_TypeError, "(void *BYTES, unsigned int LEN)",
+                       $symname, $argnum);
+    }
+}
+
+
+// (void *A_BYTES, unsigned int LEN)
+// buffer -> (void *, unsigned int)
+
+%typemap(in) (void *A_BYTES, unsigned int LEN) {
+    // in: (void *A_BYTES, unsigned int LEN)
+    if ($input == Qnil) {
+        $1 = NULL;
+        $2 = 0;
+    }
+    else if (TYPE($input) == T_STRING) {
+        void *bytes = RSTRING_PTR($input);
+        size_t len = RSTRING_LEN($input);
+        /* Allocate a new buffer that the library can (and should) free. */
+        void *a_bytes = malloc(len);
+        memcpy(a_bytes, bytes, len);
+        $1 = ($1_type)a_bytes;
+        $2 = ($2_type)len;
+    }
+    else if (SWIG_CheckConvert($input, SWIGTYPE_p_MallocBuffer) != 0) {
+        malloc_buffer_t *mb;
+        int res;
+        res = SWIG_ConvertPtr($input, (void **)&mb,
+                              SWIGTYPE_p_MallocBuffer, 0);
+        if (!SWIG_IsOK(res)) {
+            %argument_fail(res, "(void *BYTES, unsigned int LEN)",
+                           $symname, $argnum);
+        }
+        $1 = (uint8_t *)mb->data;
         $2 = ($2_type)mb->data_len;
     }
     else {

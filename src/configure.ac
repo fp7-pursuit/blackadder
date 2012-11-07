@@ -77,6 +77,19 @@ AC_SUBST(BUILD_BSDMODULE)
 
 
 dnl
+dnl Our custom arguments
+dnl
+
+AC_ARG_ENABLE(pla, [  --enable-pla            enable PLA support], :, enable_pla=no)
+if test "x$enable_pla" = xyes; then
+    AC_DEFINE(HAVE_USE_PLA)
+    element_libs="$element_libs -lpla"
+fi
+
+AC_SUBST(element_libs)
+
+
+dnl
 dnl Output
 dnl
 

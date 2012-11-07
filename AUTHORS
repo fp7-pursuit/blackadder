@@ -13,7 +13,7 @@ Contributors
 ============
 
 Jimmy Kjällman          <jimmy.kjallman@nomadiclab.com>
-    FreeBSD and Mac OS X porting (Unix sockets), SWIG-based language bindings,
+    Fixes, FreeBSD and Mac OS X porting, SWIG-based language bindings,
     C binding, sample applications for Python, Ruby, Java and C.
 
 Dimitris Syrivelis      <jsyr@inf.uth.gr>
@@ -29,4 +29,13 @@ Ben Tagger              <ben.tagger@cl.cam.ac.uk>
     Video streaming GUI demo application.
 
 Mays Al-Naday           <mfhaln@essex.ac.uk>
-    Multi-interface fix.
+    Multi-layer deployment.
+
+Yi-Ching Liao           <yliao@cs.helsinki.fi>
+    PLA support.
+
+Dmitrij Lagutin         <dmitrij.lagutin@hiit.fi>
+    PLA support.
+
+Nikos Fotiou            <fotiou@aueb.gr>
+    Access control implementation.

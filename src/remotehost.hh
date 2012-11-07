@@ -18,8 +18,10 @@
 #include "helper.hh"
 #include "common.hh"
 
+CLICK_DECLS
+
 /**
- * @brief (blackadder Core) The RemoteHost class represents a Blackadder network node.
+ * @brief (Blackadder Core) The RemoteHost class represents a Blackadder network node.
  * 
  * A network node is identified using a statistically unique node label of size NODEID_LEN (see helper.hh).
  */
@@ -47,4 +49,5 @@ public:
     StringSet subscribedInformationItems;
 };
 
+CLICK_ENDDECLS
 #endif

@@ -31,7 +31,7 @@ public class Publisher {
 	public static int TIMES = 1;
 	public static void main(String[] args) {
 		
-		String sharedObjPath = "/home/tsilochr/Documents/source-code/blackadder-svn/v0.2/lib/bindings/java-binding/jni/eu_pursuit_client_BlackadderWrapper.o";
+		String sharedObjPath = "lib/bindings/java-binding/jni/eu_pursuit_client_BlackadderWrapper.o";
 		
 		BlackadderWrapper.configureObjectFile(sharedObjPath);
 		

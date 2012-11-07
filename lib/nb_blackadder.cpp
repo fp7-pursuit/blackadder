@@ -18,8 +18,8 @@ NB_Blackadder* NB_Blackadder::m_pInstance = NULL;
 
 fd_set NB_Blackadder::read_set;
 fd_set NB_Blackadder::write_set;
-int NB_Blackadder::pipe_fds[2];
-int NB_Blackadder::sock_fd;
+int NB_Blackadder::pipe_fds[2] = {-1, -1};
+int NB_Blackadder::sock_fd = -1;
 
 queue <struct msghdr> NB_Blackadder::output_queue;
 pthread_t NB_Blackadder::selector_thread;
@@ -34,7 +34,9 @@ pthread_cond_t NB_Blackadder::worker_cond;
 char NB_Blackadder::pipe_buf[1];
 char NB_Blackadder::fake_buf[1];
 
-#if !HAVE_USE_NETLINK
+#if HAVE_USE_NETLINK
+struct sockaddr_nl NB_Blackadder::s_nladdr, NB_Blackadder::d_nladdr;
+#elif HAVE_USE_UNIX
 struct sockaddr_un NB_Blackadder::s_nladdr, NB_Blackadder::d_nladdr;
 #endif
 
@@ -83,6 +85,7 @@ void *NB_Blackadder::selector(void *arg) {
     unsigned char id_len;
     int ret;
     int high_sock;
+    unsigned char *ptr = NULL;
     if (pipe_fds[0] > sock_fd) {
         high_sock = pipe_fds[0];
     } else {
@@ -105,26 +108,35 @@ void *NB_Blackadder::selector(void *arg) {
                 msg.msg_iovlen = 1;
                 iov.iov_base = fake_buf;
                 iov.iov_len = 1;
-#if HAVE_USE_NETLINK
+#ifdef __linux__
                 total_buf_size = recvmsg(sock_fd, &msg, MSG_PEEK | MSG_TRUNC);
-#else	
-                if (recvmsg(sock_fd, &msg, MSG_PEEK) < 0 || ioctl(sock_fd, FIONREAD, &total_buf_size) < 0) {
+#else
+# ifdef __APPLE__
+                socklen_t _option_len = sizeof(total_buf_size);
+                if (recvmsg(sock_fd, &msg, MSG_PEEK) < 0 || getsockopt(sock_fd, SOL_SOCKET, SO_NREAD, &total_buf_size, &_option_len) < 0)
+# else
+                if (recvmsg(sock_fd, &msg, MSG_PEEK) < 0 || ioctl(sock_fd, FIONREAD, &total_buf_size) < 0)
+# endif
+                {
                     cout << "recvmsg/ioctl: " << errno << endl;
                     total_buf_size = -1;
                 }
 #endif
+
                 if (total_buf_size > 0) {
                     iov.iov_base = malloc(total_buf_size);
                     iov.iov_len = total_buf_size;
                     bytes_read = recvmsg(sock_fd, &msg, 0);
                     Event *ev = new Event();
                     ev->buffer = (char *) iov.iov_base;
-                    ev->type = *((char *)ev->buffer + sizeof (struct nlmsghdr));
-                    id_len = *((char *)ev->buffer + sizeof (struct nlmsghdr) + sizeof (unsigned char));
-                    ev->id = string((char *)ev->buffer + sizeof (struct nlmsghdr) + sizeof (unsigned char) + sizeof (unsigned char), ((int) id_len) * PURSUIT_ID_LEN);
+                    ptr = (unsigned char *)ev->buffer + sizeof(struct nlmsghdr);
+                    ev->type = *ptr; ptr += sizeof(ev->type);
+                    id_len = *ptr; ptr += sizeof(id_len);
+                    ev->id = string((char *)ptr, ((int) id_len) * PURSUIT_ID_LEN);
+                    ptr += ((int) id_len) * PURSUIT_ID_LEN;
                     if (ev->type == PUBLISHED_DATA) {
-                        ev->data = (char *)ev->buffer + sizeof (struct nlmsghdr) + sizeof (unsigned char) + sizeof (unsigned char) + ((int) id_len) * PURSUIT_ID_LEN;
-                        ev->data_len = bytes_read - (sizeof (struct nlmsghdr) + sizeof (unsigned char) + sizeof (unsigned char) + ((int) id_len) * PURSUIT_ID_LEN);
+                        ev->data = (void *)ptr;
+                        ev->data_len = bytes_read - (ptr - (unsigned char *)ev->buffer);
                     } else {
                         ev->data = NULL;
                         ev->data_len = 0;
@@ -147,11 +159,15 @@ void *NB_Blackadder::selector(void *arg) {
                     output_queue.pop();
                     if (msg.msg_iovlen == 2) {
                         free(msg.msg_iov[0].iov_base);
+                        msg.msg_iov[0].iov_base = NULL;
                         free(msg.msg_iov[1].iov_base);
+                        msg.msg_iov[1].iov_base = NULL;
                     } else {
                         free(msg.msg_iov->iov_base);
+                        msg.msg_iov->iov_base = NULL;
                     }
                     free(msg.msg_iov);
+                    msg.msg_iov = NULL;
                 } 
 //                else {
 //                    perror("NB_Blackadder Library: could not write!!");
@@ -182,14 +198,16 @@ NB_Blackadder::NB_Blackadder(bool user_space) {
         cout << "NB_Blackadder Library: Initializing blackadder client for user space" << endl;
 #if HAVE_USE_NETLINK
         sock_fd = socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC);
-#else
+#elif HAVE_USE_UNIX
         sock_fd = socket(PF_LOCAL, SOCK_DGRAM, 0);
 #endif
     } else {
         cout << "NB_Blackadder Library: Initializing blackadder client for kernel space" << endl;
 #if HAVE_USE_NETLINK
         sock_fd = socket(AF_NETLINK, SOCK_RAW, NETLINK_BADDER);
-#else	
+#elif __FreeBSD__ /* XXX */
+        sock_fd = socket(AF_BLACKADDER, SOCK_RAW, PROTO_BLACKADDER);
+#else
         sock_fd = -1;
         errno = EPFNOSUPPORT; /* XXX */
 #endif
@@ -202,6 +220,11 @@ NB_Blackadder::NB_Blackadder(bool user_space) {
     int x;
     x = fcntl(sock_fd, F_GETFL, 0);
     fcntl(sock_fd, F_SETFL, x | O_NONBLOCK);
+#ifdef __APPLE__
+    int bufsize = 229376; /* XXX */
+    setsockopt(sock_fd, SOL_SOCKET, SO_SNDBUF, &bufsize, sizeof(bufsize));
+    setsockopt(sock_fd, SOL_SOCKET, SO_RCVBUF, &bufsize, sizeof(bufsize));
+#endif
     /* source address */
     memset(&s_nladdr, 0, sizeof (s_nladdr));
 #if HAVE_USE_NETLINK
@@ -209,14 +232,29 @@ NB_Blackadder::NB_Blackadder(bool user_space) {
     s_nladdr.nl_pad = 0;
     s_nladdr.nl_pid = getpid();
     ret = bind(sock_fd, (struct sockaddr *) &s_nladdr, sizeof (s_nladdr));
-#else
-    s_nladdr.sun_len = sizeof (s_nladdr);
-    s_nladdr.sun_family = PF_LOCAL;
-    /* XXX: Probably shouldn't use getpid() here. */
-    ba_id2path(s_nladdr.sun_path, getpid());
-    if (unlink(s_nladdr.sun_path) != 0 && errno != ENOENT)
-        perror("unlink");
-    ret = bind(sock_fd, (struct sockaddr *) &s_nladdr, SUN_LEN(&s_nladdr));
+#elif HAVE_USE_UNIX
+    if (user_space) {
+# ifndef __linux__
+        s_nladdr.sun_len = sizeof (s_nladdr);
+# endif
+        s_nladdr.sun_family = PF_LOCAL;
+        /* XXX: Probably shouldn't use getpid() here. */
+        ba_id2path(s_nladdr.sun_path, getpid());
+        if (unlink(s_nladdr.sun_path) != 0 && errno != ENOENT)
+            perror("unlink");
+# ifdef __linux__
+        ret = bind(sock_fd, (struct sockaddr *) &s_nladdr, sizeof(s_nladdr));
+# else
+        ret = bind(sock_fd, (struct sockaddr *) &s_nladdr, SUN_LEN(&s_nladdr));
+# endif
+    } else {
+        if (sock_fd > 0)
+            ret = 0;
+        else {
+            ret = -1;
+            errno = EBADF;
+        }
+    }
 #endif
     if (ret < 0) {
         perror("NB_Blackadder Library: bind");
@@ -231,10 +269,14 @@ NB_Blackadder::NB_Blackadder(bool user_space) {
     } else {
         d_nladdr.nl_pid = 0; /* destined to kernel */
     }
-#else
-    d_nladdr.sun_len = sizeof (d_nladdr);
-    d_nladdr.sun_family = PF_LOCAL;
-    ba_id2path(d_nladdr.sun_path, (user_space) ? 9999 : 0); /* XXX */
+#elif HAVE_USE_UNIX
+    if (user_space) {
+# ifndef __linux__
+        d_nladdr.sun_len = sizeof (d_nladdr);
+# endif
+        d_nladdr.sun_family = PF_LOCAL;
+        ba_id2path(d_nladdr.sun_path, (user_space) ? 9999 : 0); /* XXX */
+    }
 #endif
     /*initialize pipes*/
     if (pipe(pipe_fds) != 0) {
@@ -266,9 +308,13 @@ NB_Blackadder::~NB_Blackadder() {
     if (sock_fd != -1) {
         close(sock_fd);
         cout << "NB_Blackadder Library: Closed netlink socket" << endl;
-#if !HAVE_USE_NETLINK
+#if HAVE_USE_UNIX
         unlink(s_nladdr.sun_path);
 #endif
+    }
+    for (int i = 0; i < (sizeof(pipe_fds)/sizeof(pipe_fds[0])); ++i) {
+        if (pipe_fds[i] != -1)
+            close(pipe_fds[i]);
     }
 }
 
@@ -410,7 +456,7 @@ void NB_Blackadder::push(unsigned char type, const string &id, const string &pre
     int buffer_length;
     struct nlmsghdr *nlh;
     struct msghdr msg;
-    struct iovec *iov = (struct iovec *) malloc(sizeof (struct iovec));
+    struct iovec *iov = (struct iovec *) calloc(1, sizeof (struct iovec));
     unsigned char id_len = id.length() / PURSUIT_ID_LEN;
     unsigned char prefix_id_len = prefix_id.length() / PURSUIT_ID_LEN;
 
@@ -453,14 +499,15 @@ void NB_Blackadder::push(unsigned char type, const string &id, const string &pre
     pthread_mutex_unlock(&selector_mutex);
 }
 
-void NB_Blackadder::publish_data(const string &id, char strategy, void *str_opt, unsigned int str_opt_len, void *data, unsigned int data_len) {
+void NB_Blackadder::publish_data(const string &id, unsigned char strategy, void *str_opt, unsigned int str_opt_len, void *a_data, unsigned int data_len) {
     int ret;
+    void *data = a_data;
     char *buffer;
     int buffer_length;
     struct nlmsghdr *nlh;
     struct msghdr msg;
     unsigned char type = PUBLISH_DATA;
-    struct iovec *iov = (struct iovec *) calloc(sizeof (struct iovec), 2);
+    struct iovec *iov = (struct iovec *) calloc(2, sizeof (struct iovec));
     unsigned char id_len = id.length() / PURSUIT_ID_LEN;
 
     if (iov == NULL) {
@@ -517,17 +564,19 @@ void NB_Blackadder::disconnect() {
 
     int ret;
     struct msghdr msg;
-    struct iovec *iov;
-    struct nlmsghdr *nlh = (struct nlmsghdr *) malloc(sizeof (struct nlmsghdr));
+    struct iovec iov[2];
+    struct nlmsghdr _nlh, *nlh = &_nlh;
+    memset(&msg, 0, sizeof(msg));
+    memset(iov, 0, sizeof(iov));
+    memset(nlh, 0, sizeof(*nlh));
     unsigned char type = DISCONNECT;
     /* Fill the netlink message header */
     nlh->nlmsg_len = sizeof (struct nlmsghdr) + 1 /*type*/;
     nlh->nlmsg_pid = getpid();
     nlh->nlmsg_flags = 1;
     nlh->nlmsg_type = 0;
-    iov = new iovec[2];
     iov[0].iov_base = nlh;
-    iov[0].iov_len = sizeof (struct nlmsghdr);
+    iov[0].iov_len = sizeof (*nlh);
     iov[1].iov_base = &type;
     iov[1].iov_len = sizeof (type);
     memset(&msg, 0, sizeof (msg));
@@ -539,10 +588,8 @@ void NB_Blackadder::disconnect() {
     if (ret < 0) {
         perror("NB_Blackadder Library: failed to send disconnection message");
     }
-    free(nlh);
-    delete [] iov;
     close(sock_fd);
-#if !HAVE_USE_NETLINK
+#if HAVE_USE_UNIX
     unlink(s_nladdr.sun_path);
 #endif
     cout << "NB_Blackadder Library: Closed netlink socket" << endl;

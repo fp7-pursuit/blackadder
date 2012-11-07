@@ -1,6 +1,6 @@
 #!/bin/sh
-#export CLASSPATH=.:$HOME/bin/blackadder/lib
-#java -Djava.library.path=.:$HOME/bin/blackadder/lib $@
+#export CLASSPATH=.:$HOME/usr/lib
+#java -Djava.library.path=.:$HOME/usr/lib $@
 #java $@
 export CLASSPATH=.:/usr/local/lib
 java -Djava.library.path=.:/usr/local/lib $@

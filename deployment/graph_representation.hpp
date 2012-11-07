@@ -20,6 +20,15 @@
 #include <sstream>
 #include "network.hpp"
 
+/* XXX: Try to figure out igraph version based on very simple assumptions. */
+#define IGRAPH_V_0_6   60
+#define IGRAPH_V_0_5   50
+#ifdef IGRAPH_VERSION
+# define IGRAPH_V IGRAPH_V_0_6
+#else /* !defined(IGRAPH_VERSION) */
+# define IGRAPH_V IGRAPH_V_0_5
+#endif
+
 using namespace std;
 
 /**@brief (Deployment Application) This Class is an iGraph representation of the network domain as this was read by the configuration file.
@@ -90,7 +99,6 @@ public:
     /**@brief node_index another STL map used for planetlab node indexing
      */
     map <int, string> node_index;
-
     /**@brief the iGraph graph.
      */
     igraph_t igraph;

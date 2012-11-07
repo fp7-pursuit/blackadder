@@ -24,7 +24,7 @@ class RemoteHost;
 class InformationItem;
 
 /**
- * @brief (blackadder Core) A Scope represents a scope that exists somewhere in the information graph managed by a rendezvous element.
+ * @brief (Blackadder Core) A Scope represents a scope that exists somewhere in the information graph managed by a rendezvous element.
  * 
  * It is not the same as an ActivePublication. InformationItem and Scope are managed by the rendezvous element, which knows the whole graph structure.
  * So a Scope keeps track of its place in the graph by having pointers to its father scopes, to its children scopes and information items. Note that only RemoteHost objects are used here. 

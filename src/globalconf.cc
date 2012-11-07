@@ -38,7 +38,8 @@ int GlobalConf::configure(Vector<String> &conf, ErrorHandler *errh) {
             cpEnd) < 0) {
         return -1;
     }
-    if (mode.compare(String("mac")) == 0) {
+    if ((mode.compare(String("mac")) == 0)
+        || (mode.compare(String("mac_ml")) == 0)) {
         use_mac = true;
         //click_chatter("Forwarder will run using ethernet frames");
     } else if (mode.compare(String("ip")) == 0) {
@@ -123,12 +124,12 @@ int GlobalConf::configure(Vector<String> &conf, ErrorHandler *errh) {
     return 0;
 }
 
-int GlobalConf::initialize(ErrorHandler *errh) {
+int GlobalConf::initialize(ErrorHandler */*errh*/) {
     //click_chatter("GlobalConf: initialized!");
     return 0;
 }
 
-void GlobalConf::cleanup(CleanupStage stage) {
+void GlobalConf::cleanup(CleanupStage /*stage*/) {
     click_chatter("GlobalConf: Cleaned Up!");
 }
 

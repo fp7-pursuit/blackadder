@@ -1,3 +1,60 @@
+/*
+ * bitvector.{cc,hh} -- generic bit vector class
+ * Eddie Kohler
+ *
+ * Copyright (c) 1999-2000 Massachusetts Institute of Technology
+ * Copyright (c) 2002 International Computer Science Institute
+ * Copyright (c) 2008 Meraki, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, subject to the conditions
+ * listed in the Click LICENSE file. These conditions include: you must
+ * preserve this copyright notice, and you cannot mention the copyright
+ * holders in advertising related to the Software without their permission.
+ * The Software is provided WITHOUT ANY WARRANTY, EXPRESS OR IMPLIED. This
+ * notice is a summary of the Click LICENSE file; the license in that file is
+ * legally binding.
+ *
+ * ---------------------------------------------------------------------------
+ *
+ * Click LICENSE file
+ * ===========================================================================
+ *
+ * (c) 1999-2009 Massachusetts Institute of Technology
+ * (c) 2000-2009 Mazu Networks, Inc.
+ * (c) 2001-2009 International Computer Science Institute
+ * (c) 2004-2009 Regents of the University of California
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * The name and trademarks of copyright holders may NOT be used in advertising
+ * or publicity pertaining to the Software without specific, written prior
+ * permission. Title to copyright in this Software and any associated
+ * documentation will at all times remain with copyright holders.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ *
+ * ---------------------------------------------------------------------------
+ *
+ * Copyright (C) 2010-2012  George Parisis and Dirk Trossen
+ * See LICENSE and COPYING for more details.
+ */
+
 #ifndef CLICK_BA_BITVECTOR_HH
 #define CLICK_BA_BITVECTOR_HH
 
@@ -8,7 +65,7 @@
 
 CLICK_DECLS
 
-/** @brief (blackadder Core) Stolen by Click's bitvector. 
+/** @brief (Blackadder Core) Stolen by Click's bitvector. 
  * Can now directly access the _data value and print it
  */
 class BABitvector {
@@ -242,7 +299,7 @@ public:
 
 };
 
-/**@brief (blackadder Core) Stolen by Click's bitvector. A wrapper class that acts like a single bit.
+/**@brief (Blackadder Core) Stolen by Click's bitvector. A wrapper class that acts like a single bit.
  * 
  * Bits are returned by modifiable Bitvectors' operator[].  They act like bools,
  * but Bit operations actually index into individual bits in some shared word. */

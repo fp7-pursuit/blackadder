@@ -23,7 +23,7 @@ class NBSubscriber(object):
         self.__last_ev = None
     
     def subscribe(self, argv=[]):
-        strategy = NODE_LOCAL
+        strategy = DOMAIN_LOCAL
         if len(argv) >= 2:
             strategy = int(argv[1])
         
@@ -51,12 +51,13 @@ class NBSubscriber(object):
         if ev and ev.type == PUBLISHED_DATA:
             print "id=%r" % ev.id
             print "len=%d" % ev.data_len
-            print "%r" % ev.data
+            print "%r" % ev.data[:]
 
 def _main(argv=[]):
     nbs = NBSubscriber()
     nbs.subscribe(argv)
 
 if __name__ == "__main__":
+    import os; print os.getpid()
     import sys
     _main(sys.argv)

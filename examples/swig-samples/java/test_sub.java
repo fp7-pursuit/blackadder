@@ -19,27 +19,32 @@ class Subscriber {
     }
     static final blackadder_java.BA BA = null;
 
+    int strategy = BA.DOMAIN_LOCAL;
+
     void subscribe(byte[] sid, byte[] rid) {
         blackadder_java.Blackadder ba =
-	    blackadder_java.Blackadder.Instance(true);
+            blackadder_java.Blackadder.Instance(true);
 
-        ba.subscribe_info(rid, sid, BA.NODE_LOCAL, null);
+        try {
+            ba.subscribe_info(rid, sid, strategy, null);
 
-        while (true) {
-            blackadder_java.Event ev = new blackadder_java.Event();
-            ba.getEvent(ev);
-            int type = ev.getType();
-            System.out.println(type);
-            if (type == 0)
-                break;
-            if (type == BA.PUBLISHED_DATA) {
-                byte[] data = ev.getData();
-                System.out.println(ev.getData_len());
-                System.out.println(new String(data));
+            while (true) {
+                blackadder_java.Event ev = new blackadder_java.Event();
+                ba.getEvent(ev);
+                int type = ev.getType();
+                System.out.println(type);
+                if (type == 0)
+                    return;
+                if (type == BA.PUBLISHED_DATA) {
+                    byte[] data = ev.getData();
+                    System.out.println(ev.getData_len());
+                    System.out.println(new String(data));
+                }
             }
         }
-
-        ba.disconnect();
+        finally {
+            ba.disconnect();
+        }
     }
 }
 

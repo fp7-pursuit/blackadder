@@ -24,63 +24,50 @@
 #define HAVE_USE_NETLINK 1
 #endif
 
-#if CLICK_LINUXMODULE
+#if !HAVE_USE_NETLINK && !CLICK_BSDMODULE
+#define HAVE_USE_UNIX 1
+#endif
+
+#if CLICK_LINUXMODULE || CLICK_BSDMODULE
 #include <click/hashtable.hh>
 #include <click/standard/scheduleinfo.hh>
 #include <click/cxxprotect.h>
 CLICK_CXX_PROTECT
+# if CLICK_LINUXMODULE
 #include <linux/pid.h>
 #include <linux/netlink.h>
+#include <linux/module.h>
 #include <net/sock.h>
+# else
+#include "bsd_ba_socket.h"
+# endif
 CLICK_CXX_UNPROTECT
 #include <click/cxxunprotect.h>
 #define TASK_IS_SCHEDULED 0
 #else
 #include <queue>
 #include <click/cxxprotect.h>
-
 CLICK_CXX_PROTECT
-#if HAVE_USE_NETLINK
+# if HAVE_USE_NETLINK
 #include <linux/netlink.h>
-#else  /* __FreeBSD__, __APPLE__, etc. */
+# elif HAVE_USE_UNIX  /* __FreeBSD__, __APPLE__, etc. */
+#  ifdef __linux__
+#include <linux/un.h>
+#  else
 #include <sys/un.h>
-#endif
+#  endif
+# endif
+# ifdef __FreeBSD__
+# include <sys/event.h>
+# endif
 CLICK_CXX_UNPROTECT
 #include <click/cxxunprotect.h>
 #endif
 
 CLICK_DECLS
 
-#if CLICK_LINUXMODULE
-/** @brief (blackadder Core) A click-compatible way of implementing a set of pointers to struct pid
- * 
- * PIDSetItem represents a pointer to a struct pid that can be inserted in a set (Click HashTable)
- */
-struct PIDSetItem {
-    /* data */
-    struct pid * _pidpointer;
-    pid_t _pid_no;
 
-    typedef struct pid * key_type;
-    typedef struct pid * key_const_reference;
-
-    key_const_reference hashkey() const {
-        return _pidpointer;
-    }
-
-    /*constructor*/
-    PIDSetItem(struct pid * _pidp) : _pidpointer(_pidp) {
-    }
-};
-/** @brief A set (implemented as a Click's HashTable) of pointers to struct pid
- */
-typedef HashTable<PIDSetItem> PIDSet;
-/** @brief An iterator to a set (implemented as a Click's HashTable) of pointers to struct pid
- */
-typedef PIDSet::iterator PIDSetIter;
-#endif
-
-/**@brief (blackadder Core) The Netlink Element is the base element that creates, opens and binds to the netlink socket of Blackadder.
+/**@brief (Blackadder Core) The Netlink Element is the base element that creates, opens and binds to the netlink socket of Blackadder.
  * 
  * It does not receive or push packets. It is passed as a paramater to the FromNetlink and ToNetlink Elements that do the actual job.
  */
@@ -139,11 +126,12 @@ public:
     /** the struct socket *, which represents the kernel netlink socket
      */
     struct sock *nl_sk;
+#elif CLICK_BSDMODULE
 #else
     /**the netlink socket descriptor
      */
     int fd;
-#if !HAVE_USE_NETLINK
+#if HAVE_USE_UNIX
     struct sockaddr_un s_nladdr;
 #endif
     /** a queue (from STL to use only in user space) that holds the packets to be sent to an application via the netlink socket.
@@ -153,6 +141,7 @@ public:
 };
 
 CLICK_ENDDECLS
+
 #ifndef __LINUX_NETLINK_H
 extern "C" {
 struct nlmsghdr {
@@ -162,10 +151,17 @@ struct nlmsghdr {
     uint32_t    nlmsg_seq;
     uint32_t    nlmsg_pid;
 };
+
+struct sockaddr_nl {
+    sa_family_t     nl_family;
+    unsigned short  nl_pad;
+    uint32_t        nl_pid;
+    uint32_t        nl_groups;
+};
 }
 #endif
 
-#if !HAVE_USE_NETLINK
+#if HAVE_USE_UNIX
 #define ba_id2path(path, id)  \
     snprintf((path), 100, "/tmp/blackadder.%05u", (id))
 #if defined(__FreeBSD__) || defined(__OpenBSD__)
@@ -179,5 +175,6 @@ ba_path2id(const char *path)
 #else
 #define ba_path2id(path) atoi((path) + 16)
 #endif
-#endif
-#endif
+#endif /* HAVE_USE_UNIX */
+
+#endif /* CLICK_NETLINK_HH */

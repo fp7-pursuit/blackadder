@@ -16,7 +16,7 @@
 
 TMIgraph::TMIgraph() {
     igraph_i_set_attribute_table(&igraph_cattribute_table);
-    igraph_empty(&graph, 0, true);
+    //igraph_empty(&graph, 0, IGRAPH_DIRECTED); // No, read from file instead
 }
 
 TMIgraph::~TMIgraph() {
@@ -41,6 +41,9 @@ int TMIgraph::readTopology(char *file_name) {
     size_t found, first, second;
     FILE *instream;
     infile.open(file_name, ifstream::in);
+    if (infile.fail()) {
+        return -1;
+    }
     /*first the Global graph attributes - c igraph does not do it!!*/
     while (infile.good()) {
         getline(infile, str);
@@ -115,13 +118,21 @@ Bitvector *TMIgraph::calculateFID(string &source, string &destination) {
     VECTOR(res)[0] = temp_v;
     igraph_vector_init(temp_v, 1);
     /*run the shortest path algorithm from "from"*/
+#if IGRAPH_V >= IGRAPH_V_0_6
+    igraph_get_shortest_paths(&graph, &res, NULL, from, vs, IGRAPH_OUT);
+#else
     igraph_get_shortest_paths(&graph, &res, from, vs, IGRAPH_OUT);
+#endif
     /*check the shortest path to each destination*/
     temp_v = (igraph_vector_t *) VECTOR(res)[0];
     //click_chatter("Shortest path from %s to %s", igraph_cattribute_VAS(&graph, "NODEID", from), igraph_cattribute_VAS(&graph, "NODEID", VECTOR(*temp_v)[igraph_vector_size(temp_v) - 1]));
     /*now let's "or" the FIDs for each link in the shortest path*/
     for (int j = 0; j < igraph_vector_size(temp_v) - 1; j++) {
+#if IGRAPH_V >= IGRAPH_V_0_6
+        igraph_get_eid(&graph, &eid, VECTOR(*temp_v)[j], VECTOR(*temp_v)[j + 1], true, true);
+#else
         igraph_get_eid(&graph, &eid, VECTOR(*temp_v)[j], VECTOR(*temp_v)[j + 1], true);
+#endif
         //click_chatter("node %s -> node %s", igraph_cattribute_VAS(&graph, "NODEID", VECTOR(*temp_v)[j]), igraph_cattribute_VAS(&graph, "NODEID", VECTOR(*temp_v)[j + 1]));
         //click_chatter("link: %s", igraph_cattribute_EAS(&graph, "LID", eid));
         string LID(igraph_cattribute_EAS(&graph, "LID", eid), FID_LEN * 8);
@@ -190,7 +201,6 @@ void TMIgraph::calculateFID(set<string> &publishers, set<string> &subscribers, m
 }
 
 void TMIgraph::calculateFID(string &source, string &destination, Bitvector &resultFID, unsigned int &numberOfHops) {
-    int vertex_id;
     igraph_vs_t vs;
     igraph_vector_ptr_t res;
     igraph_vector_t to_vector;
@@ -210,13 +220,21 @@ void TMIgraph::calculateFID(string &source, string &destination, Bitvector &resu
     VECTOR(res)[0] = temp_v;
     igraph_vector_init(temp_v, 1);
     /*run the shortest path algorithm from "from"*/
+#if IGRAPH_V >= IGRAPH_V_0_6
+    igraph_get_shortest_paths(&graph, &res, NULL, from, vs, IGRAPH_OUT);
+#else
     igraph_get_shortest_paths(&graph, &res, from, vs, IGRAPH_OUT);
+#endif
     /*check the shortest path to each destination*/
     temp_v = (igraph_vector_t *) VECTOR(res)[0];
 
     /*now let's "or" the FIDs for each link in the shortest path*/
     for (int j = 0; j < igraph_vector_size(temp_v) - 1; j++) {
+#if IGRAPH_V >= IGRAPH_V_0_6
+        igraph_get_eid(&graph, &eid, VECTOR(*temp_v)[j], VECTOR(*temp_v)[j + 1], true, true);
+#else
         igraph_get_eid(&graph, &eid, VECTOR(*temp_v)[j], VECTOR(*temp_v)[j + 1], true);
+#endif
         Bitvector *lid = (*edge_LID.find(eid)).second;
         (resultFID) = (resultFID) | (*lid);
     }

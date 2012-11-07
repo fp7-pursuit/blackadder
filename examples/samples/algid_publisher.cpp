@@ -132,6 +132,7 @@ void *publisher_loop(void *arg) {
             pthread_mutex_unlock(&queue_mutex);
         }
     }
+    return NULL;
 }
 
 void callback(Event *ev) {

@@ -23,7 +23,7 @@
 
 CLICK_DECLS
 
-/**@brief (blackadder Core) a forwarding_entry represents an entry in the forwarding table of this Blackadder node.
+/**@brief (Blackadder Core) a forwarding_entry represents an entry in the forwarding table of this Blackadder node.
  * 
  * Depending on the network mode in which Blackadder runs in this node, a forwarding entru may have an src and dst EtherAddress, or a src_ip and dst_ip IP address.
  */
@@ -52,7 +52,7 @@ public:
 };
 
 
-/**@brief (blackadder Core) The Forwarder Element implements the forwarding function. Currently it supports the basic LIPSIN mechanism.
+/**@brief (Blackadder Core) The Forwarder Element implements the forwarding function. Currently it supports the basic LIPSIN mechanism.
  * 
  * It can work in two modes. In a MAC mode it expects ethernet frames from the network devices. It checks the LIPSIN identifiers and pushes packets to another Ethernet interface or to the LocalProxy.
  * In IP mode, the Forwarder expects raw IP sockets as the underlying network. Note that a mixed mode is currently not supported. Some lines must be written.

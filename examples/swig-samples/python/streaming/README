@@ -1,0 +1,25 @@
+Simple Audio/Video Streaming Python Application
+===============================================
+
+Files
+-----
+
+recv_and_pub.py - Receives a stream of data over a socket and publishes it
+sub_and_send.py - Subscribes to a stream of data and sends it over a socket
+pub_stream      - Script for publishing a file streamed by VLC
+sub_stream      - Script for subscribing to a stream and showing it in VLC
+sock_send.py    - Test app for sending text (to be published)
+sock_recv.py    - Test app for receiving text (from a subscription)
+
+Usage Example
+-------------
+
+Publisher:
+./pub_stream LipsinForwarding.mp4
+
+Subscriber:
+./sub_stream
+
+Note that the IDs are simply just hard-coded into the applications, so
+concurrent streams are not supported without modifying the code.
+Also note that in some cases you may need to kill the processes to stop them.

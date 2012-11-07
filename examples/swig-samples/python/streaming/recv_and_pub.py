@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #-
-# Copyright (C) 2011  Oy L M Ericsson Ab, NomadicLab
+# Copyright (C) 2011-2012  Oy L M Ericsson Ab, NomadicLab
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 as
@@ -22,9 +22,10 @@ from threading import Thread
 from time import sleep
 import os
 import socket
+import signal
 
 def _main(argv=[]):
-    strategy = NODE_LOCAL # XXX: NODE_LOCAL=0, DOMAIN_LOCAL=2
+    strategy = DOMAIN_LOCAL # XXX: NODE_LOCAL=0, DOMAIN_LOCAL=2
     if len(argv) >= 2:
         strategy = int(argv[1])
     str_opt = None
@@ -39,10 +40,15 @@ def _main(argv=[]):
     wfd, rfd = None, None
     
     ba = Blackadder.Instance(True)
+    
     try:
         sid  = '\x0a'+6*'\x00'+'\x0b'
         rid  = '\x0c'+6*'\x00'+'\x0d'
         id   = sid + rid
+
+        def sigh(num, frame):
+            raise KeyboardInterrupt()
+        signal.signal(signal.SIGINT, sigh)
         
         ba.publish_scope(sid, "", strategy, str_opt)
         ba.publish_info(rid, sid, strategy, str_opt)
@@ -95,6 +101,8 @@ def _main(argv=[]):
                 os.close(rfd); rfd = None
                 os.close(wfd); wfd = None
                 sleep(0.1) # XXX: Wait for thread to stop.
+            elif ev.type == UNDEF_EVENT:
+                raise RuntimeError("Undefined event") # XXX
     finally:
         ba.disconnect()
         print "Blackadder disconnected"

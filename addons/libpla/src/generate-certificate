@@ -1,0 +1,15 @@
+#!/bin/sh
+
+if [ ! -f "/etc/pla.conf" ]
+then # certificate file doesn't exist
+    echo "Generating certificate (/etc/pla.conf)"
+    ./placonf ttp create "2008-01-01 00:00:00" "2038-02-02 10:10:10" > ttp.cert
+    ./placonf -C ttp.cert id sign 31 31 "2008-02-02 01:01:01" "2038-01-01 01:02:03" > user.cert
+    output=`./placonf -C user.cert cert verify 2>&1`
+    if [ "$output" = "Successful verify" ]
+    then # certificate works correctly, copy it to /etc/ together with a TTP certicate
+    	cp user.cert /etc/pla.conf
+	cp ttp.cert /etc/ttp.conf
+    fi
+fi
+

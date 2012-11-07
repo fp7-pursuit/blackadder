@@ -22,26 +22,35 @@ ToNetlink::~ToNetlink() {
     click_chatter("ToNetlink: destroyed!");
 }
 
-int ToNetlink::configure(Vector<String> &conf, ErrorHandler *errh) {
+int ToNetlink::configure(Vector<String> &conf, ErrorHandler */*errh*/) {
     netlink_element = (Netlink *) cp_element(conf[0], this);
     //click_chatter("ToNetlink: configured!");
     return 0;
 }
 
+#if CLICK_LINUXMODULE || CLICK_BSDMODULE
 int ToNetlink::initialize(ErrorHandler *errh) {
-#if CLICK_LINUXMODULE
     _task = new Task(this);
     _to_netlink_element_state = 0;
+# if CLICK_LINUXMODULE
     mutex_init(&up_mutex);
+# else
+    mtx_init(&up_mutex, "ba_up_mutex", NULL, MTX_DEF);
+# endif
     ScheduleInfo::initialize_task(this, _task, errh);
-#endif
     //click_chatter("ToNetlink: initialized!");
     return 0;
 }
+#else
+int ToNetlink::initialize(ErrorHandler */*errh*/) {
+    //click_chatter("ToNetlink: initialized!");
+    return 0;
+}
+#endif
 
 void ToNetlink::cleanup(CleanupStage stage) {
     if (stage >= CLEANUP_INITIALIZED) {
-#if CLICK_LINUXMODULE
+#if CLICK_LINUXMODULE || CLICK_BSDMODULE
         /*empty the queues first*/
         int up_queue_size;
         /*empty the up_queue*/
@@ -54,7 +63,11 @@ void ToNetlink::cleanup(CleanupStage stage) {
             up_queue.pop_back();
         }
         delete _task;
+# if CLICK_LINUXMODULE
         mutex_unlock(&up_mutex);
+# else
+        mtx_destroy(&up_mutex);
+# endif
 #endif
     }
     click_chatter("ToNetlink: Cleaned Up!");
@@ -71,13 +84,17 @@ void ToNetlink::push(int, Packet *p) {
     nlh->nlmsg_type = 0;
     nlh->nlmsg_flags = 1;
     nlh->nlmsg_seq = 0;
-#if CLICK_LINUXMODULE
+#if CLICK_LINUXMODULE || CLICK_BSDMODULE
     nlh->nlmsg_pid = 0;
     mutex_lock(&up_mutex);
     up_queue.push_front(final_p);
     mutex_unlock(&up_mutex);
     _task->reschedule();
+# if CLICK_LINUXMODULE
     set_bit(TASK_IS_SCHEDULED, &_to_netlink_element_state);
+# else
+    atomic_set_long((volatile u_long *)(&_to_netlink_element_state), 1);
+# endif
 #else
     nlh->nlmsg_pid = 9999;
     netlink_element->out_buf_queue.push(final_p);
@@ -85,24 +102,39 @@ void ToNetlink::push(int, Packet *p) {
 #endif
 }
 
-#if CLICK_LINUXMODULE
+#if CLICK_LINUXMODULE || CLICK_BSDMODULE
 
 bool ToNetlink::run_task(Task *t) {
     int ret;
     Packet *up_packet = NULL;
     int pid;
+# if CLICK_LINUXMODULE
     clear_bit(TASK_IS_SCHEDULED, &_to_netlink_element_state);
+# else
+    atomic_clear_long((volatile u_long *)(&_to_netlink_element_state), 1);
+# endif
     mutex_lock(&up_mutex);
     while (up_queue.size() > 0) {
         up_packet = up_queue.at(up_queue.size() - 1);
         up_queue.pop_back();
         pid = up_packet->anno_u32(0);
+# if CLICK_LINUXMODULE
         ret = netlink_unicast(netlink_element->nl_sk, up_packet->skb(), pid, MSG_WAITALL);
+# else
+        struct mbuf *m = up_packet->steal_m();
+        ret = ba_to_socket(m, pid);
+# endif
     }
     mutex_unlock(&up_mutex);
+# if CLICK_LINUXMODULE
     if (test_bit(TASK_IS_SCHEDULED, &_to_netlink_element_state) == 1) {
         t->fast_reschedule();
     }
+# else
+    if ((*(volatile u_long *)(&_to_netlink_element_state)) & 1) {
+        t->fast_reschedule();
+    }
+# endif
     return true;
 }
 #else
@@ -112,7 +144,7 @@ void ToNetlink::selected(int fd, int mask) {
     int bytes_written;
 #if HAVE_USE_NETLINK
     struct sockaddr_nl d_nladdr;
-#else
+#elif HAVE_USE_UNIX
     struct sockaddr_un d_nladdr;
 #endif
     struct msghdr msg;
@@ -125,8 +157,10 @@ void ToNetlink::selected(int fd, int mask) {
             d_nladdr.nl_family = AF_NETLINK;
             d_nladdr.nl_pad = 0;
             d_nladdr.nl_pid = newPacket->anno_u32(0);
-#else
+#elif HAVE_USE_UNIX
+# ifndef __linux__
             d_nladdr.sun_len = sizeof (d_nladdr);
+# endif
             d_nladdr.sun_family = PF_LOCAL;
             ba_id2path(d_nladdr.sun_path, newPacket->anno_u32(0));
 #endif

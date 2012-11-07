@@ -12,7 +12,7 @@
 #
 
 include ../swig-common.am
-include includes.am
+#include includes.am
 
 JAVAC ?= javac
 SWIGCXXFLAGS += $(JAVA_INCLUDES)
@@ -30,15 +30,19 @@ SWIG_PACKAGE = blackadder_java
 SWIG_OUTDIR = $(SWIG_PACKAGE).src
 SWIGFLAGS += -java -outdir $(SWIG_OUTDIR) -package $(SWIG_PACKAGE)
 
-blackadder_wrap.cxx: *.i $(LIBDIR)/*.hpp
+blackadder_wrap.cxx: *.i  $(LIBDIR)/*.h $(LIBDIR)/*.hpp
 	test -d $(SWIG_OUTDIR) || mkdir -p $(SWIG_OUTDIR)
 	$(SWIG) $(SWIGFLAGS) blackadder.i
+	cp EventProxy.java $(SWIG_OUTDIR)
 	$(JAVAC) $(SWIG_OUTDIR)/*.java -d .
 
 clean-local:
 	rm -f blackadder_wrap.cxx
 	rm -rf $(SWIG_OUTDIR)
 	rm -rf $(SWIG_PACKAGE)
+
+install-exec-hook:
+	test -n "$(LDCONFIG)" -a "$(libdir)" = "/usr/local/lib" && $(LDCONFIG) /usr/local/lib || true # XXX
 
 install-data-hook:
 	cp -r $(SWIG_PACKAGE) $(libdir)

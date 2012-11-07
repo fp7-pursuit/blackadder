@@ -27,7 +27,7 @@ import eu.pursuit.core.Strategy;
 public class Subcriber {
 	public static void main(String[] args) {
 		
-		String sharedObjPath = "/home/tsilochr/Documents/source-code/blackadder-svn/v0.2/lib/bindings/java-binding/jni/eu_pursuit_client_BlackadderWrapper.o";
+		String sharedObjPath = "lib/bindings/java-binding/jni/eu_pursuit_client_BlackadderWrapper.o";
 		BlackadderWrapper.configureObjectFile(sharedObjPath);
 		
 		BlackAdderClient client = BlackAdderClient.getInstance();

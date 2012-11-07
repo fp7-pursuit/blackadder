@@ -18,7 +18,7 @@
 from blackadder.blackadder import *
 
 def _main(argv=[]):
-    strategy = NODE_LOCAL
+    strategy = DOMAIN_LOCAL # Our default strategy is domain-local
     if len(argv) >= 2:
         strategy = int(argv[1])
     
@@ -42,5 +42,6 @@ def _main(argv=[]):
         ba.disconnect()
 
 if __name__ == "__main__":
+    import os;  print "PID =", os.getpid()
     import sys
     _main(sys.argv)

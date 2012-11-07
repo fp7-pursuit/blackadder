@@ -29,7 +29,7 @@ class InformationItem;
 class ActivePublication;
 class ActiveSubscription;
 
-/** @brief (blackadder Core) A click-compatible way of implementing a set of LocalHost (see localhost.hh)
+/** @brief (Blackadder Core) A click-compatible way of implementing a set of LocalHost (see localhost.hh)
  * 
  * LocalHostSetItem represents a LocalHost that can be inserted in a set (Click HashTable)
  */
@@ -57,7 +57,7 @@ struct LocalHostSetItem {
     }
 };
 
-/** @brief (blackadder Core) A click-compatible way of implementing a set of RemoteHost (see remotehost.hh)
+/** @brief (Blackadder Core) A click-compatible way of implementing a set of RemoteHost (see remotehost.hh)
  * 
  * RemoteHostSetItem represents a RemoteHost that can be inserted in a set (Click HashTable)
  */
@@ -82,7 +82,7 @@ struct RemoteHostSetItem {
     }
 };
 
-/** @brief (blackadder Core) A click-compatible way of implementing a set of String (Click's string)
+/** @brief (Blackadder Core) A click-compatible way of implementing a set of String (Click's string)
  * 
  * StringSetItem represents a String that can be inserted in a set (Click HashTable)
  */
@@ -108,7 +108,7 @@ struct StringSetItem {
     }
 };
 
-/** @brief (blackadder Core) A click-compatible way of implementing a set of InformationItem (see informationitem.hh)
+/** @brief (Blackadder Core) A click-compatible way of implementing a set of InformationItem (see informationitem.hh)
  * 
  * InformationItemSetItem represents an InformationItem that can be inserted in a set (Click HashTable)
  */
@@ -133,7 +133,7 @@ struct InformationItemSetItem {
     }
 };
 
-/** @brief (blackadder Core) A click-compatible way of implementing a set of Scope (see scope.hh)
+/** @brief (Blackadder Core) A click-compatible way of implementing a set of Scope (see scope.hh)
  * 
  * ScopeSetItem represents a Scope that can be inserted in a set (Click HashTable)
  */

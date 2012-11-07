@@ -112,8 +112,8 @@ class string;
         $2 = 0;
     }
     else {
-        $1 = ($1_type)JCALL2(GetByteArrayElements, jenv, $input, NULL);
-        $2 = JCALL1(GetArrayLength, jenv, $input);
+        $1 = (uint8_t *)JCALL2(GetByteArrayElements, jenv, $input, NULL);
+        $2 = ($2_type)JCALL1(GetArrayLength, jenv, $input);
     }
 }
 
@@ -128,6 +128,49 @@ class string;
 %typemap(javain) (void *BYTES, unsigned int LEN) "$javainput"
 
 %typemap(javaout) (void *BYTES, unsigned int LEN) {
+    return $jnicall;
+}
+
+
+// (void *A_BYTES, unsigned int LEN)
+// byte[] <-> (void *, unsigned int)
+
+/* XXX: Use ByteBuffer instead of byte[] in order to avoid copying? */
+
+%typemap(jni) (void *A_BYTES, unsigned int LEN) "jbyteArray"
+%typemap(jtype) (void *A_BYTES, unsigned int LEN) "byte[]"
+%typemap(jstype) (void *A_BYTES, unsigned int LEN) "byte[]"
+
+%typemap(in) (void *A_BYTES, unsigned int LEN) {
+    // in: (void *A_BYTES, unsigned int LEN)
+    if(!$input) {
+        $1 = NULL;
+        $2 = 0;
+    }
+    else {
+        void *bytes = JCALL2(GetByteArrayElements, jenv, $input, NULL);
+        size_t len = JCALL1(GetArrayLength, jenv, $input);
+        /* Allocate a new buffer that the library can (and should) free. */
+        void *a_bytes = malloc(len);
+        memcpy(a_bytes, bytes, len); /* XXX: Additional copy */
+        JCALL3(ReleaseByteArrayElements, jenv, $input, (jbyte *)bytes,
+               (jint)0);
+        $1 = ($1_type)a_bytes;
+        $2 = ($2_type)len;
+    }
+}
+
+%typemap(argout) (void *A_BYTES, unsigned int LEN) {
+    // argout: (void *A_BYTES, unsigned int LEN)
+    /*
+     * We don't free $1 in this case because we assume that the
+     * library will do it.
+     */
+}
+
+%typemap(javain) (void *A_BYTES, unsigned int LEN) "$javainput"
+
+%typemap(javaout) (void *A_BYTES, unsigned int LEN) {
     return $jnicall;
 }
 

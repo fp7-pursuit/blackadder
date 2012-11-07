@@ -27,10 +27,13 @@ _blackadder_py_la_LDFLAGS += $(SWIGLDFLAGS)
 
 SWIGFLAGS += -python -threads -outdir .
 
-blackadder_wrap.cxx: *.i $(LIBDIR)/*.hpp
+blackadder_wrap.cxx: *.i $(LIBDIR)/*.h $(LIBDIR)/*.hpp
 	$(SWIG) $(SWIGFLAGS) blackadder.i
 
 clean-local:
 	rm -f blackadder_wrap.cxx
 	rm -f blackadder_py.py
 	rm -f *.pyc *.pyo
+
+install-exec-hook:
+	test -n "$(LDCONFIG)" -a "$(libdir)" = "/usr/local/lib" && $(LDCONFIG) /usr/local/lib || true # XXX
