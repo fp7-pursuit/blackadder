@@ -1,0 +1,131 @@
+<html><body>
+
+<h1>Higher layer API</h1>
+
+<h2>Folders</h2>
+<ul>
+<li>/core The required files in order to implement a higher layer publisher, subscriber or rendezvous</li>
+<li>/simple_authentication An example of password protected access control</li>
+<li>/trivial_cdn An example of a trivial CDN</li>
+<li>/diverse_traffic An example of document and channel mode support</li>
+</ul>
+
+<h2>Creating a higher layer publisher/subscriber</h2>
+<p>
+All entities in this higher layer communicate through a preconfigured scope 
+(<i>SCOPECOM</i> for the rest of this file). The API is non blocking therefore
+a loop should be created in order for an application to not exit. Publishers
+and Subscribers should inherit the class <b>CommChannel</b> (public CommChannel). This 
+class provides a virtual function (which therefore should be implemented) which is
+used as a callback function of the lower layer. This function is the <code>
+void fromLowerLayer(RVEvent &amp;);</code>
+</p>
+<p>
+<b>RVEvent</b> is a class defined in <b>CommChannel.hpp</b> and it extends blackadder Event
+by adding some new fields and some new events (We will come back to this later on).
+</p>
+<p>
+To access this layer API a publisher/subscriber application should create a new
+<b>BaseEP</b> class. The constructor of this class accepts four arguments: the SCOPECOM,
+a CommChannel class, the blackadder user_space and the blackadder_strategy. E.g:<br/><br/>
+<code>
+BaseEP ba = new BaseEP("ACRVAka1",this,true,DOMAIN_LOCAL);
+</code>
+<br/>
+<br/>
+where <i>ACRVAka1</i> is the <i>SCOPECOM</i> and <i>this</i> is the class 
+that implements the publisher (which as we said before should inherit <b>CommChannel</b>).
+</p>
+<p>
+BaseEP currently supports the following API calls:<br/><br/>
+<code>
+void publish_scope_wpl(std::string &amp;id, std::string &amp;prefix_id, char* payload, int size)<br/>
+void publish_info_wpl(std::string &amp;id, std::string &amp;prefix_id, char* payload, int size)<br/>
+void subscribe_info_wpl( std::string &amp;id, std::string &amp;prefix_id, char* payload, int size)<br/>
+</code>
+<br/>
+and it extends the following blackadder API calls:<br/><br/>
+<code>
+void publish_data(const std::string &amp;id, void *data, int data_len)<br/>
+void publish_info(const std::string&amp;id, const std::string&amp;prefix_id,)<br/>
+void unpublish_info(const string&amp;id, const string&amp;prefix_id)<br/>
+void unsubscribe_info(const string&amp;id, const string&amp;prefix_id)<br/>
+</code>
+</p>
+<p>
+In all API calls (including calls to the blackadder extended API) <i>id</i> and 
+<i>prefix_id</i> can be of unlimited length. In all API calls <i>payload</i> is a message
+that the RV will receive, <i>size</i> is the size of the payload E.g.:<br/>
+<br/>
+<code>
+publish_scope_wpl("My Scope", "The root scope" , (char*)payload_str.c_str(), payload_str.size());
+</code>
+<br/>
+</p>
+<p>
+When a notification arrives from the RV the <code>fromLowerLayer(RVEvent &ev)</code> function will be invoked. The
+Events for publishers/subscribers are the same as the events the blackadder Event class provides.
+</p>
+<p>
+In order to compile a publisher/subscriber typically the following command is used:<br/>
+<code>
+g++ Publisher.cpp  Transport.cpp PubSubWPayloadAPI.cpp BaseRV.cpp BaseEP.cpp -lblackadder -lpthread -g -o  Publisher
+</code>
+</p>
+<h2>Creating a higher layer rendezvous</h2>
+<p>
+Higher layer rendezvous should also inherit the CommChannel class, therefore 
+implements void fromLowerLayer(RVEvent &ev).
+</p>
+<p>
+In order to access the rendezvous specific API an instance of the <b>BaseRV</b> class
+should be created. Each rendezvous implementation should initialize a BaseRV instance
+and then invoke its <i>listen(std:string SCOPECOM)</i> method. The constructor of BaseRV
+accepts three arguments: a CommChannel class, the blackadder user_space and the blackadder_strategy.
+E.g.:<br/>
+<br/>
+<code>
+BaseRV br = new BaseRV(this,true,DOMAIN_LOCAL); <br/>
+br->listen("ACRVAka1");<br/>
+</code>
+<br/>
+Where this, is the class implementing the rendezvous (and therefore  extends the CommChannel
+class) and  ACRVAka1 is the SCOPECOM
+</p>
+<p>
+When a notification arrives from the RV the <code>fromLowerLayer(RVEvent &ev)</code> function will be invoked.
+The possible events (i.e., ev.id values are):<br/>
+<code>NEW_PUB_SCOPE</code> when a new scope is published<br/>
+<code>NEW_PUB_INFO</code> when a new info is published<br/>
+<code>NEW_SUB_SCOPE</code> when a new subscription to a scope arrives <br/>
+<code>NEW_SUB_INFO</code> when a new subscription to an info arrives<br/>
+and the corresponding un* events:<br/> 
+<code>NEW_UNPUB_SCOPE</code> <br/>
+<code>NEW_UNPUB_INFO</code><br/>
+<code>NEW_UNSUB_SCOPE</code><br/>
+<code>NEW_UNSUB_INFO</code><br/>
+<br/>
+Moreover each event provides:<br/>
+An RId to which the entity that send the message expects ack, notifications (RIdtoEP field)<br/>
+The higher layer identifiers of the new scopes/information/subscription (OPId field)<br/>
+Their prefix (prefix field)<br/>
+The payload of the message (data field)<br/>
+The size of the (data_len field).
+<br/>
+Upon receiving an event a higher layer rendezvous can send a notification. This is done by invoking the 
+<br/><code>void  sendACK(std::string RIdtoEP, std::string msg)</code> 
+<br/>function of BaseRP, where RIdtoEP is an RId to which to the entity that caused the event (and it is provided by the RIdtoEP field of the event class) and message is the message of the ack. Note that the ack should be handle by the application layer, therefore the message should be something meaningful for the application.
+</p><p>
+When a subscription/publication match take place the rendezvous point should notify publisher to start publishing data and subscriber to start receiving data. This is achieved by invoking the 
+<br/><code>notifyPubSub(std::string RId, std::string prefix, std::string RIdtoPub, std::string RIdtoSub,std::string cSId, std::string cRId,std::string msgToPub="",std::string msgToSub="")</code><br/>
+function of BaseRP, where RIdtoPub is an RId to which the publisher expects response (it should have been kept from the respective NEW_PUB_INFO/NEW_PUB_SCOPE event), RIdtoSub is an RId to which the subscriber expects response (it should have been kept from the respective NEW_SUB_INFO/NEW_SUB_SCOPE event) CSId, CRId are the lower layer identifiers to which publisher should publish_data and to which the subscriber should subscribe_info(they are actually create a channel, the appropriate lower layer commands are invoked by the API implementation) and msgToPub and msgToSub are optionally messages (note, not yet implemented). BaseRP provides a function that generated random RId: 
+<br/><code>std::string rndRId(int length)</code><br/>
+ where length is the length of the RId (typical value is 8)
+</p>
+<p>
+In order to compile a rendezvous typically the following command is used:<br/>
+<code>
+g++ Rendezvous.cpp  Transport.cpp PubSubWPayloadAPI.cpp BaseRV.cpp BaseEP.cpp -lblackadder -lpthread -g -o  Rendezvous
+</code>
+</p>
+</body></html>

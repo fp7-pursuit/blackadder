@@ -1,0 +1,17 @@
+It creates a rendezvous that supports both channel and document mode
+
+=====Compile======
+compile rendezvous: make rendezvous
+compile publisher: make publisher
+compile subscriber: make subscriber
+
+======Running=====
+First run the rendezvous: ./Rendezvous
+Then run the publishers which  publishes a lives stream (channel): ./Publisher_Channel
+Then run the publishers which  publishes a document: ./Publisher_Document
+Finally run subscriber by specifying the type to which he will subscribe: ./Subscriber <type>
+E.g., ./Subscriber channel or ./Subscriber document
+If you subscribe to the channel and then run another instance of the subscriber (./Subscriber channel)
+the second subscriber will start receiving from the current transmitted frame
+
+

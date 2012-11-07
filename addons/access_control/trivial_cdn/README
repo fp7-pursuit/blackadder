@@ -1,0 +1,18 @@
+It creates a rendezvous that selects the publisher that is located at the same ISP
+as the subscriber (if there is not such a publisher it selects the first)
+
+=====Compile======
+compile rendezvous: make rendezvous
+compile publisher: make publisher
+compile subscriber: make subscriber
+
+======Running=====
+First run the rendezvous: ./Rendezvous
+Then run the publishers: ./Publisher <ISPID>
+E.g., ./Publihser ISP32 run at least two publishers. All publishers advertise
+the same publication
+
+Finally run subscriber: ./Subscriber <ISPID>
+E.g., ./Subscriber ISP32 If there is a publisher with the same ISPID this will
+be chosen (you will notice which publisher has been selected by publisher's output)
+

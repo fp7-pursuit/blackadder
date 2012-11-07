@@ -1,0 +1,15 @@
+It creates a rendezvous that supports password protected publications
+
+=====Compile======
+compile rendezvous: make rendezvous
+compile publisher: make publisher
+compile subscriber: make subscriber
+
+======Running=====
+First run the rendezvous: ./Rendezvous
+Then run the publisher: ./Publisher 
+The publisher will create a publication with password 123456
+Finally run subscriber: ./Subscriber <password>
+if the provided password is correct then the publication will appear, else 
+a notification message will appear informing the subscriber that the password
+was wrong
