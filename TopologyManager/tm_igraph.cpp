@@ -38,7 +38,7 @@ int TMIgraph::readTopology(char *file_name) {
     Bitvector *ilid;
     ifstream infile;
     string str;
-    size_t found, first, second;
+    size_t found_5, found_6, first, second;
     FILE *instream;
     infile.open(file_name, ifstream::in);
     if (infile.fail()) {
@@ -47,21 +47,24 @@ int TMIgraph::readTopology(char *file_name) {
     /*first the Global graph attributes - c igraph does not do it!!*/
     while (infile.good()) {
         getline(infile, str);
-        found = str.find("<data key=\"FID_LEN\">");
-        if (found != string::npos) {
+        found_5 = str.find("<data key=\"FID_LEN\">");
+        found_6 = str.find("<data key=\"g_FID_LEN\">");
+        if ((found_5 != string::npos) || ((found_6 != string::npos))) {
             first = str.find(">");
             second = str.find("<", first);
             sscanf(str.substr(first + 1, second - first - 1).c_str(), "%d", &fid_len);
         }
-        found = str.find("<data key=\"TM\">");
-        if (found != string::npos) {
+        found_5 = str.find("<data key=\"TM\">");
+        found_6 = str.find("<data key=\"g_TM\">");
+        if ((found_5 != string::npos) || ((found_6 != string::npos))) {
             first = str.find(">");
             second = str.find("<", first);
             nodeID = str.substr(first + 1, second - first - 1);
         }
 
-        found = str.find("<data key=\"TM_MODE\">");
-        if (found != string::npos) {
+        found_5 = str.find("<data key=\"TM_MODE\">");
+        found_6 = str.find("<data key=\"g_TM_MODE\">");
+        if ((found_5 != string::npos) || ((found_6 != string::npos))) {
             first = str.find(">");
             second = str.find("<", first);
             mode = str.substr(first + 1, second - first - 1);
