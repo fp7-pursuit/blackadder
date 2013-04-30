@@ -7,8 +7,8 @@ SHELL = @SHELL@
 package := @CLICKPACKAGENAME@
 
 # Set these variables appropriately.
-top_builddir := .
-subdir := .
+top_builddir := @top_builddir@
+subdir := @srcdir@
 
 # Require Click prefix settings.
 # Generally, you will provide a '--with-click=CLICKPREFIX' option, and set:
@@ -59,4 +59,10 @@ endif
 
 include $(clickbuild_datadir)/pkg-Makefile
 
+
+# Additional package-specific variables. Can be changed if needed.
+
 ELEMENT_LIBS += @element_libs@
+
+#CFLAGS += -g -DDEBUG
+#CXXFLAGS += -g -DDEBUG

@@ -11,7 +11,10 @@
  *
  * See LICENSE and COPYING for more details.
  */
+
 #include "fromnetlink.hh"
+
+#include <click/deque.hh>
 
 #if HAVE_USE_UNIX
 #include <click/cxxprotect.h>
@@ -24,7 +27,7 @@ CLICK_CXX_UNPROTECT
 CLICK_DECLS
 
 #if CLICK_LINUXMODULE || CLICK_BSDMODULE
-static Vector<Packet *> *down_queue;
+static Deque<Packet *> *down_queue;
 static struct mutex down_mutex;
 static Task *_from_netlink_task;
 static unsigned long _from_netlink_element_state;
@@ -110,7 +113,7 @@ int FromNetlink::configure(Vector<String> &conf, ErrorHandler */*errh*/) {
 
 #if CLICK_LINUXMODULE || CLICK_BSDMODULE
 int FromNetlink::initialize(ErrorHandler *errh) {
-    down_queue = new Vector<Packet *>();
+    down_queue = new Deque<Packet *>();
 # if CLICK_LINUXMODULE
     netlink_element->nl_sk = netlink_kernel_create(&init_net, NETLINK_BADDER, 0, nl_callback, NULL, THIS_MODULE);
     if (netlink_element->nl_sk == NULL) {

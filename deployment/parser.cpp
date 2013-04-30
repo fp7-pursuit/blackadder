@@ -161,7 +161,7 @@ int Parser::addConnection(const Setting &connection, NetworkNode *nn) {
     }
     /***********Parse the connection type****************/
     /***Parse the src_if or src_ip or out_pt depending on mode****/
-    if (dm->overlay_mode.compare("mac") == 0) {
+    if (dm->overlay_mode.compare("mac") == 0 || dm->overlay_mode.compare("mac_qos") == 0) {
         if (connection.lookupValue("src_if", src_if)) {
             nc->src_if = src_if;
         } else {
@@ -186,7 +186,7 @@ int Parser::addConnection(const Setting &connection, NetworkNode *nn) {
         }
     }
     /***Parse the dst_if or dst_ip depending on mode****/
-    if (dm->overlay_mode.compare("mac") == 0) {
+    if (dm->overlay_mode.compare("mac") == 0 || dm->overlay_mode.compare("mac_qos") == 0) {
         if (connection.lookupValue("dst_if", dst_if)) {
             nc->dst_if = dst_if;
         } else {
@@ -210,7 +210,7 @@ int Parser::addConnection(const Setting &connection, NetworkNode *nn) {
         }
     }
     /*check if a mac address was hardcoded - e.g. for laptops in the testbed*/
-    if (dm->overlay_mode.compare("mac") == 0) {
+    if (dm->overlay_mode.compare("mac") == 0 || dm->overlay_mode.compare("mac_qos") == 0) {
         if (connection.lookupValue("src_mac", src_mac)) {
             nc->src_mac = src_mac;
         }
@@ -237,6 +237,15 @@ int Parser::addConnection(const Setting &connection, NetworkNode *nn) {
             nc->dst_mac = dst_mac;
         }
     }
+    
+    // get the link priority for scheduling
+    nc->priority=0; // default - BE
+    connection.lookupValue("priority", nc->priority);
+    
+    // get link rate limit
+    nc->rate_lim=1250000000;
+    connection.lookupValue("rate_lim", nc->rate_lim);
+    
     nn->connections.push_back(nc);
     dm->number_of_connections++;
     return 0;

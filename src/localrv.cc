@@ -57,14 +57,28 @@ void LocalRV::cleanup(CleanupStage /*stage*/) {
     }
     size = scopeIndex.size();
     ScopeHashMapIter it2 = scopeIndex.begin();
+    ScopeSet deleted_scopes;
     for (int i = 0; i < size; i++) {
-        delete (*it2).second;
+        Scope *scope = (*it2).second;
+        if (!deleted_scopes.find(scope)) {
+            /* Add scope to deleted scopes, so that we don't try to
+             * delete it again if it appears with another ID. */
+            deleted_scopes.find_insert(ScopeSetItem(scope));
+            delete scope;
+        }
         it2 = scopeIndex.erase(it2);
     }
     size = pubIndex.size();
     IIHashMapIter it3 = pubIndex.begin();
+    InformationItemSet deleted_pubs;
     for (int i = 0; i < size; i++) {
-        delete (*it3).second;
+        InformationItem *ii = (*it3).second;
+        if (!deleted_pubs.find(ii)) {
+            /* Add item to deleted pubs, so that we don't try to
+             * delete it again if it appears with another ID. */
+            deleted_pubs.find_insert(InformationItemSetItem(ii));
+            delete ii;
+        }
         it3 = pubIndex.erase(it3);
     }
     click_chatter("LocalRV: Cleaned Up!");
@@ -85,6 +99,7 @@ void LocalRV::push(int in_port, Packet * p) {
         IDOfAPIEvent = String((const char *) (p->data() + sizeof (typeOfAPIEvent) + sizeof (IDLengthOfAPIEvent)), IDLengthOfAPIEvent * PURSUIT_ID_LEN);
         if (typeOfAPIEvent == PUBLISHED_DATA) {
             nodeID = IDOfAPIEvent.substring(PURSUIT_ID_LEN);
+            //click_chatter("LocalRV: nodeID is: %s \n", nodeID.c_str());
             type = *(p->data() + sizeof (typeOfAPIEvent) + sizeof (IDLengthOfAPIEvent) + IDLengthOfAPIEvent * PURSUIT_ID_LEN);
             IDLength = *(p->data() + sizeof (typeOfAPIEvent) + sizeof (IDLengthOfAPIEvent) + IDLengthOfAPIEvent * PURSUIT_ID_LEN + sizeof (type));
             ID = String((const char *) (p->data() + sizeof (typeOfAPIEvent) + sizeof (IDLengthOfAPIEvent) + IDLengthOfAPIEvent * PURSUIT_ID_LEN + sizeof (type) + sizeof (IDLength)), IDLength * PURSUIT_ID_LEN);
@@ -1377,6 +1392,105 @@ RemoteHost * LocalRV::getRemoteHost(String & nodeID) {
         pub_sub_Index.set(nodeID, _remotehost);
     }
     return _remotehost;
+}
+
+String LocalRV::listInfoStructs() {
+    StringAccum sa (2048);
+
+    ScopeSet scopes;
+    InformationItemSet iitems;
+
+    //Timestamp ts1 = Timestamp::now();
+
+    /*
+     * A JSON-like format is practical for "dumping" the information
+     * structures as it is a commonly used standard format, has low
+     * overhead and complexity, is easy to encode and parse, is
+     * text-based and human-readable, and suits our purposes well.
+     */
+
+    sa << "{\"scopes\": [";
+    for (ScopeHashMapIter hm_it = scopeIndex.begin(); hm_it; ++hm_it) {
+        scopes.find_insert(ScopeSetItem(hm_it->second));
+    }
+    size_t s_i = 0, s_n = scopes.size() - 1;
+    for (ScopeSetIter s_it = scopes.begin(); s_it; ++s_it) {
+        IdsHashMap *ids = &s_it->_scpointer->ids;
+        sa << "[";
+        size_t id_i = 0, id_n = ids->size() - 1;
+        for (IdsHashMapIter id_it = ids->begin(); id_it; ++id_it) {
+            const String *id = &id_it->first;
+            RemoteHostSet *ps = &id_it->second->first;
+            RemoteHostSet *ss = &id_it->second->second;
+            String hex_id = id->quoted_hex();
+            if (hex_id.length() >= 3)
+                hex_id = hex_id.substring(2, hex_id.length()-3);
+            sa << "{\"id\": \"" << hex_id << "\", \"pub\": [";
+            size_t rhs_i = 0, rhs_n = ps->size() - 1;
+            for (RemoteHostSetIter rhs_it = ps->begin(); rhs_it; ++rhs_it) {
+                String *rh_id = &rhs_it->_rhpointer->remoteHostID;
+                sa << '\"' << *rh_id << ((rhs_i++ == rhs_n) ? "\"": "\", ");
+            }
+            sa << "], \"sub\": [";
+            rhs_i = 0, rhs_n = ss->size() - 1;
+            for (RemoteHostSetIter rhs_it = ss->begin(); rhs_it; ++rhs_it) {
+                String *rh_id = &rhs_it->_rhpointer->remoteHostID;
+                sa << '\"' << *rh_id << ((rhs_i++ == rhs_n) ? "\"": "\", ");
+            }
+            sa << ((id_i++ == id_n) ? "] } ": "] }, ");
+        }
+        sa << ((s_i++ == s_n) ? "] " : "], ");
+    }
+
+    sa << "], \"iitems\": [";
+    for (IIHashMapIter hm_it = pubIndex.begin(); hm_it; ++hm_it) {
+        iitems.find_insert(InformationItemSetItem(hm_it->second));
+    }
+    s_i = 0, s_n = iitems.size() - 1;
+    for (InformationItemSetIter s_it = iitems.begin(); s_it; ++s_it) {
+        IdsHashMap *ids = &s_it->_iipointer->ids;
+        sa << "[";
+        size_t id_i = 0, id_n = ids->size() - 1;
+        for (IdsHashMapIter id_it = ids->begin(); id_it; ++id_it) {
+            const String *id = &id_it->first;
+            RemoteHostSet *ps = &id_it->second->first;
+            RemoteHostSet *ss = &id_it->second->second;
+            String hex_id = id->quoted_hex();
+            if (hex_id.length() >= 3)
+                hex_id = hex_id.substring(2, hex_id.length()-3);
+            sa << "{\"id\": \"" << hex_id << "\", \"pub\": [";
+            size_t rhs_i = 0, rhs_n = ps->size() - 1;
+            for (RemoteHostSetIter rhs_it = ps->begin(); rhs_it; ++rhs_it) {
+                String *rh_id = &rhs_it->_rhpointer->remoteHostID;
+                sa << '\"' << *rh_id << ((rhs_i++ == rhs_n) ? "\"": "\", ");
+            }
+            sa << "], \"sub\": [";
+            rhs_i = 0, rhs_n = ss->size() - 1;
+            for (RemoteHostSetIter rhs_it = ss->begin(); rhs_it; ++rhs_it) {
+                String *rh_id = &rhs_it->_rhpointer->remoteHostID;
+                sa << '\"' << *rh_id << ((rhs_i++ == rhs_n) ? "\"": "\", ");
+            }
+            sa << ((id_i++ == id_n) ? "] } ": "] }, ");
+        }
+        sa << ((s_i++ == s_n) ? "] " : "], ");
+    }
+    
+    sa << "] }\r\n";
+
+    //click_chatter((Timestamp::now() - ts1).unparse_interval().c_str());
+
+    return sa.take_string();
+}
+
+static String
+LocalRV_read_dump_handler(Element *e, void *)
+{
+    LocalRV *c = (LocalRV *)e;
+    return c->listInfoStructs();
+}
+
+void LocalRV::add_handlers() {
+    add_read_handler("dump", LocalRV_read_dump_handler, 0);
 }
 
 CLICK_ENDDECLS

@@ -128,7 +128,6 @@ Blackadder::~Blackadder() {
         close(kq);
 #endif
     }
-    cout << "Blackadder Library: Deleted Blackadder Object" << endl;
 }
 
 Blackadder* Blackadder::Instance(bool user_space) {
@@ -217,7 +216,6 @@ void Blackadder::disconnect() {
 #if HAVE_USE_UNIX
     unlink(s_nladdr.sun_path);
 #endif
-    cout << "Closed netlink socket" << endl;
     sock_fd = -1;
 }
 
@@ -548,4 +546,20 @@ string chararray_to_hex(const string &str) {
         }
     }
     return oss.str();
+}
+
+vector<int> split_int_string(string &input_str, char delim_char) {
+    stringstream ss(input_str);
+    string str_token;
+    vector<int> result;
+
+    while (getline(ss, str_token, delim_char)) {
+        if (str_token != "") {
+            int tmp_item;
+            stringstream(str_token) >> tmp_item;
+            result.push_back(tmp_item);
+        }
+    }
+
+    return(result);
 }

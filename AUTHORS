@@ -14,7 +14,7 @@ Contributors
 
 Jimmy Kjällman          <jimmy.kjallman@nomadiclab.com>
     Fixes, FreeBSD and Mac OS X porting, SWIG-based language bindings,
-    C binding, sample applications for Python, Ruby, Java and C.
+    C binding, sample applications for Python, Ruby, Java and C, etc.
 
 Dimitris Syrivelis      <jsyr@inf.uth.gr>
     Deployment tool, PlanetLab support, Click elements.
@@ -29,7 +29,7 @@ Ben Tagger              <ben.tagger@cl.cam.ac.uk>
     Video streaming GUI demo application.
 
 Mays Al-Naday           <mfhaln@essex.ac.uk>
-    Multi-layer deployment.
+    Multi-layer deployment. Resiliency.
 
 Yi-Ching Liao           <yliao@cs.helsinki.fi>
     PLA support.
@@ -39,3 +39,12 @@ Dmitrij Lagutin         <dmitrij.lagutin@hiit.fi>
 
 Nikos Fotiou            <fotiou@aueb.gr>
     Access control implementation.
+
+Martin Reed
+    Traffic Engineering.
+
+Andreas Bontozoglou
+    QoS.
+
+Evans Mungai		<evans.mungai@aalto.fi>
+    Additions to C API.

@@ -1,0 +1,7 @@
+# II(before hashing) meta-data
+# Moon.mp4
+000000000000000085cfd105cf7a461d 15 99 51 2 53 1000
+# Moon2.mp4
+0000000000000000dc2c56f98bec93f1 15 10 51 2 53 1000
+# Traffic Generator :) (not needed if you use qos_pub since it has meta too)
+#0000000000000000deadbeefdeadbeef 15 10 51 2 53 1000

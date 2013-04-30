@@ -49,3 +49,4 @@ typedef char  int8_t;
 %include "blackadder.hpp"
 %include "nb_blackadder.hpp"
 %include "bitvector.hpp"
+%include "ba_fnv.hpp"

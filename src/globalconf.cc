@@ -39,7 +39,8 @@ int GlobalConf::configure(Vector<String> &conf, ErrorHandler *errh) {
         return -1;
     }
     if ((mode.compare(String("mac")) == 0)
-        || (mode.compare(String("mac_ml")) == 0)) {
+        || (mode.compare(String("mac_ml")) == 0)
+        || (mode.compare(String("mac_qos")) == 0)) {
         use_mac = true;
         //click_chatter("Forwarder will run using ethernet frames");
     } else if (mode.compare(String("ip")) == 0) {

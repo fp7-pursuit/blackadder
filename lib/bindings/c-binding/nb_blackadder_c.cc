@@ -100,3 +100,21 @@ nb_ba_join(nb_ba_handle ba)
 {
     ((NB_Blackadder *)ba)->join();
 }
+
+extern "C" Fnv64_t
+nb_ba_fnv1_64(const unsigned char *data, unsigned int n)
+{
+    return fnv1_64(data, n);
+}
+
+extern "C" Fnv64_t
+nb_ba_fnv1a_64(const unsigned char *data, unsigned int n)
+{
+    return fnv1a_64(data, n);
+}
+
+extern "C" char *
+nb_ba_fnv_chars(Fnv64_t *hash)
+{
+    return (char *)hash;
+}

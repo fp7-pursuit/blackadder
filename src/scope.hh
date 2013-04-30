@@ -113,9 +113,17 @@ public:
     /**
      * @brief Returns the ith identifier of this InformationItem in a binary format. It has to be quoted_hex() for printing in the usual hex format.
      * 
+     * @param i index of identifier
      * @return a string of the binary representation of the ith InformationItem's identifier.
      */
     String printID(unsigned int i);
+    /**
+     * @brief Returns all identifiers of (not in) this Scope in a binary (?) format. It has to be quoted_hex() for printing in the usual hex format (?).
+     * 
+     * @param delim Delimiter character to be added after each ID
+     * @return a string of the binary (?) representations of all InformationItems' identifiers.
+     */
+    String printIDs(char delim);
     /** @brief The information identifiers of this Scope. 
      * 
      *  They are represented as a HashTable of strings (binary representation of an identifier) mapped to a Pair of set of RemoteHosts, containing the publishers and subscribers, respectively.

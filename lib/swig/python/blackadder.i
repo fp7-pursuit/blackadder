@@ -41,6 +41,7 @@
 %include "blackadder.hpp"
 %include "nb_blackadder.hpp"
 %include "bitvector.hpp"
+%include "ba_fnv.hpp"
 
 %inline %{
 // Convenience function for creating a read-write buffer object

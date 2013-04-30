@@ -3,9 +3,9 @@
 
 # Autoconf initialisation.
 AC_PREREQ([2.67])
-AC_INIT([blackadder], [0.3], [pursuit-code@hiit.fi])
+AC_INIT([blackadder], [0.4], [pursuit-code@hiit.fi])
 AC_SUBST(MAJOR, 0)
-AC_SUBST(MINOR, 3)
+AC_SUBST(MINOR, 4)
 #AC_CONFIG_SRCDIR([blackadder.cpp])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_AUX_DIR([config])

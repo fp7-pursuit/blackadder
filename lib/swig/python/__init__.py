@@ -16,4 +16,4 @@ Blackadder.
 """
 
 __all__ = ['blackadder_py', 'blackadder']
-#__version__ = '0.3'
+#__version__ = '0.4'

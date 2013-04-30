@@ -32,6 +32,14 @@ class NetworkNode;
 class NS3Application;
 class NS3ApplicationAttribute;
 
+typedef struct _ifmapelement {
+  int fwport;
+  int prio;
+  int rate_lim;
+} IfMapE;
+typedef map<string, vector<IfMapE> > IfPortsMap;
+
+
 /**@brief (Deployment Application) a representation of a network domain as read from the configuration file.
  * 
  * It contains all network nodes with their connections.
@@ -45,10 +53,10 @@ public:
     /**@brief a vector containing all NetworkNode
      */
     vector<NetworkNode *> network_nodes;
-    /**@brief a pointer to a NetworkNode that is the Rendezvous node of the domain.
+    /**@brief a pointer to a NetworkNode that is the TopologyManager of the domain.
      */
     NetworkNode *TM_node;
-    /**@brief a pointer to a NetworkNode that is the TopologyManager of the domain.
+    /**@brief a pointer to a NetworkNode that is the Rendezvous node of the domain.
      */
     NetworkNode *RV_node;
     /**@brief number of nodes in the domain.
@@ -120,7 +128,7 @@ public:
      *
      * @param montoolstub generate monitor tool counter stub or not
      */
-    void writeClickFiles(bool montoolstub);
+    void writeClickFiles(bool montoolstub, bool dump_supp);
     void writeNS3ClickFiles();
     /**@brief Given a node label, it returns a pointer to the respective NetworkNode.
      * 
@@ -207,6 +215,9 @@ public:
     int mtu;
     string rate;
     string delay;
+        
+    int priority; //link priority. If not there is set to 0 (default - BE)
+    int rate_lim; //link rate limit for the bandwidth shaper. If not there is set to 10Gbps
 };
 
 class NS3Application {

@@ -15,15 +15,15 @@
 #ifndef CLICK_PLA_HH
 #define CLICK_PLA_HH
 
-#include "globalconf.hh"
-#include "forwarder.hh"
+#include "../globalconf.hh"
+#include "../forwarder.hh"
 
 #include <clicknet/ether.h>
 #include <click/args.hh>
 #include <sys/time.h>
 #if HAVE_USE_PLA
-#include "../libpla/include/libpla.h"
-#include "../libpla/include/libpla_io.h"
+#include "../../addons/libpla/include/libpla.h"
+#include "../../addons/libpla/include/libpla_io.h"
 #endif /* HAVE_USE_PLA */
 
 CLICK_DECLS

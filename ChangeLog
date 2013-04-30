@@ -29,5 +29,13 @@ Changes in Blackadder v0.3:
 - Various fixes and improvements
 - Documentation updated
 
-Changes in Blackadder v0.3:
+Changes in Blackadder v0.3.1:
 - Topology manager bug fix
+
+Changes in Blackadder v0.4:
+- Topology management extensions
+  - Resiliency
+  - Traffic engineering
+  - QoS
+- Rendezvous information visualization
+- Fixes etc.

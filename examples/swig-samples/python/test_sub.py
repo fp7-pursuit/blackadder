@@ -24,8 +24,8 @@ def _main(argv=[]):
     
     ba = Blackadder_Instance(True)
     
-    sid  = '\x0a'+6*'\x00'+'\x0b'
-    rid  = '\x0c'+6*'\x00'+'\x0d'
+    sid  = '\x0a'+(PURSUIT_ID_LEN-2)*'\x00'+'\x0b'
+    rid  = '\x0c'+(PURSUIT_ID_LEN-2)*'\x00'+'\x0d'
     
     ba.subscribe_info(rid, sid, strategy, None)
     

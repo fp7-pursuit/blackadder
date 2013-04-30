@@ -1,16 +1,31 @@
-all:
-	$(CXX) $(CXXFLAGS) channel_publisher.cpp -o channel_publisher $(LDFLAGS) -lblackadder -lpthread
-	$(CXX) $(CXXFLAGS) channel_subscriber.cpp -o channel_subscriber $(LDFLAGS) -lblackadder -lpthread
-	$(CXX) $(CXXFLAGS) publisher.cpp  -o publisher $(LDFLAGS) -lblackadder -lpthread
-	$(CXX) $(CXXFLAGS) subscriber.cpp -o subscriber $(LDFLAGS) -lblackadder -lpthread
-	$(CXX) $(CXXFLAGS) nb_publisher.cpp  -o nb_publisher $(LDFLAGS) -lblackadder -lpthread
-	$(CXX) $(CXXFLAGS) nb_subscriber.cpp -o nb_subscriber $(LDFLAGS) -lblackadder -lpthread
-	$(CXX) $(CXXFLAGS) broadcast_subscriber.cpp -o broadcast_subscriber $(LDFLAGS) -lblackadder -lpthread
-	$(CXX) $(CXXFLAGS) broadcast_publisher.cpp -o broadcast_publisher $(LDFLAGS) -lblackadder -lpthread
-	$(CXX) $(CXXFLAGS) algid_publisher.cpp -o algid_publisher $(LDFLAGS) -lblackadder -lpthread -lcrypto
-	$(CXX) $(CXXFLAGS) algid_subscriber.cpp -o algid_subscriber $(LDFLAGS) -lblackadder -lpthread -lcrypto
-	$(CXX) $(CXXFLAGS) nb_channel_publisher.cpp -o nb_channel_publisher $(LDFLAGS) -lblackadder -lpthread
-	$(CXX) $(CXXFLAGS) nb_channel_subscriber.cpp -o nb_channel_subscriber $(LDFLAGS) -lblackadder -lpthread
+BA_LDFLAGS=-lblackadder -lpthread
+
+all: channel_publisher channel_subscriber publisher subscriber nb_publisher nb_subscriber broadcast_subscriber broadcast_publisher algid_publisher algid_subscriber nb_channel_publisher nb_channel_subscriber
+
+channel_publisher: channel_publisher.cpp
+	$(CXX) $(CXXFLAGS) -O3 $^ -o $@ $(LDFLAGS) $(BA_LDFLAGS)
+channel_subscriber: channel_subscriber.cpp
+	$(CXX) $(CXXFLAGS) -O3 $^ -o $@ $(LDFLAGS) $(BA_LDFLAGS)
+publisher: publisher.cpp
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(BA_LDFLAGS)
+subscriber: subscriber.cpp
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(BA_LDFLAGS)
+nb_publisher: nb_publisher.cpp
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(BA_LDFLAGS)
+nb_subscriber: nb_subscriber.cpp
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(BA_LDFLAGS)
+broadcast_subscriber: broadcast_subscriber.cpp
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(BA_LDFLAGS)
+broadcast_publisher: broadcast_publisher.cpp
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(BA_LDFLAGS)
+algid_publisher: algid_publisher.cpp
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(BA_LDFLAGS) -lcrypto
+algid_subscriber: algid_subscriber.cpp
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(BA_LDFLAGS) -lcrypto
+nb_channel_publisher: nb_channel_publisher.cpp
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(BA_LDFLAGS)
+nb_channel_subscriber: nb_channel_subscriber.cpp
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(BA_LDFLAGS)
 
 clean:
 	rm -f channel_publisher channel_subscriber publisher subscriber nb_publisher nb_subscriber broadcast_publisher broadcast_subscriber algid_subscriber algid_publisher nb_channel_publisher nb_channel_subscriber

@@ -2,14 +2,25 @@
 
 <h1>Higher layer API</h1>
 
+<h2>Overview</h2>
+<p>
+This folder contains a set of classes that extend blackadder API enabling the development of more advanced applications. The features that this API provides are:
+<ul>
+<li>Identifiers of unlimited length</li>
+<li>Publication and Subscription messages with payloads</li>
+<li>Development of custom rendezvous points</li>
+</ul>
+In addition to the core classes, some examples are provided</p>
+ 
 <h2>Folders</h2>
 <ul>
 <li>/core The required files in order to implement a higher layer publisher, subscriber or rendezvous</li>
 <li>/simple_authentication An example of password protected access control</li>
 <li>/trivial_cdn An example of a trivial CDN</li>
-<li>/diverse_traffic An example of document and channel mode support</li>
+<li>/diverse_traffic An example of document and channel mode support (As described by Tsilopoulos and Xylomenos <a href="http://dl.acm.org/citation.cfm?id=2018588">here</a> )</li>
+<li>/access_delegation An example of access control enforcement delegation (As described by Fotiou et al. <a href="http://dl.acm.org/citation.cfm?id=2342507">here</a>)</li>
 </ul>
-
+<p>Please refer to the README files, that exist in every folder for instructions on how to run the examples</p>
 <h2>Creating a higher layer publisher/subscriber</h2>
 <p>
 All entities in this higher layer communicate through a preconfigured scope 

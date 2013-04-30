@@ -16,6 +16,8 @@
 
 #include "netlink.hh"
 
+#include <click/deque.hh>
+
 CLICK_DECLS
 
 /**@brief (Blackadder Core) The ToNetlink Element is the Element that sends packets to applications.
@@ -106,7 +108,7 @@ public:
     /**@brief the Click Task.
      */
     Task *_task;
-    Vector<Packet *> up_queue;
+    Deque<Packet *> up_queue;
     struct mutex up_mutex;
     unsigned long _to_netlink_element_state;
 #endif

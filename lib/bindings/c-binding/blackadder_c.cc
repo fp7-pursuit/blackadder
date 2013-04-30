@@ -98,3 +98,45 @@ ba_event_data(ba_event ev, void **data, unsigned int **data_len)
     *data = ((Event *)ev)->data;
     *data_len = &((Event *)ev)->data_len;
 }
+
+extern "C" const char*
+chararray_to_hex(const char *str) {
+	if (str == NULL) return NULL;
+	string _s = chararray_to_hex(string(str));
+	int _size = strlen(_s.c_str());
+	char* ret = (char*)malloc(_size + 1); //Extra null termination char
+	memcpy((void*)ret, (const void*)_s.c_str(), _size);
+	// Manually add the null termination char
+	ret[_size] = '\0';
+	return ret;
+}
+
+extern "C" const char*
+hex_to_chararray(const char *str) {
+	if (str == NULL) return NULL;
+	string _s = hex_to_chararray(string(str));
+	int _size = strlen(_s.c_str());
+	char* ret = (char*)malloc(_size + 1); //Extra null termination char
+	memcpy((void*)ret, (const void*)_s.c_str(), _size);
+	// Manually add the null termination char
+	ret[_size] = '\0';
+	return ret;
+}
+
+extern "C" Fnv64_t
+ba_fnv1_64(const unsigned char *data, unsigned int n)
+{
+    return fnv1_64(data, n);
+}
+
+extern "C" Fnv64_t
+ba_fnv1a_64(const unsigned char *data, unsigned int n)
+{
+    return fnv1a_64(data, n);
+}
+
+extern "C" char *
+ba_fnv_chars(Fnv64_t *hash)
+{
+    return (char *)hash;
+}

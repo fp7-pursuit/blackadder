@@ -66,6 +66,8 @@
 #define INFO_DOES_NOT_EXIST 8
 #define DOES_NOT_EXIST 9
 #define UNKNOWN_REQUEST_TYPE 10
+#define UPDATE_BA 55
+
 /**********************************/
 #define RV_ELEMENT 1 //put the correct click port here
 

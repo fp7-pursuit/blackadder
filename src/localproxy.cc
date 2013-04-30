@@ -407,6 +407,7 @@ void LocalProxy::handleRVNotification(Packet *p) {
     ActivePublication *ap;
     bool shouldBreak = false;
     BABitvector FID;
+
     type = *(p->data());
     numberOfIDs = *(p->data() + sizeof (type));
     for (int i = 0; i < (int) numberOfIDs; i++) {
@@ -450,7 +451,7 @@ void LocalProxy::handleRVNotification(Packet *p) {
         case START_PUBLISH:
             FID = BABitvector(FID_LEN * 8);
             memcpy(FID._data, p->data() + sizeof (type) + sizeof (numberOfIDs) + index, FID_LEN);
-            //click_chatter("LocalProxy: RECEIVED FID:%s\n", FID.to_string().c_str());
+            //click_chatter("LocalProxy: RECEIVED FID: %s, number of IDs: %u\n", FID.to_string().c_str(), numberOfIDs);
             for (int i = 0; i < (int) numberOfIDs; i++) {
                 ap = activePublicationIndex.get(IDs[i]);
                 if (ap != activePublicationIndex.default_value()) {
@@ -480,6 +481,7 @@ void LocalProxy::handleRVNotification(Packet *p) {
                         /*iterate once to see if any of the publishers for this item (which may be represented by many ids) is already notified*/
                         for (PublisherHashMapIter publishers_it = ap->publishers.begin(); publishers_it != ap->publishers.end(); publishers_it++) {
                             (*publishers_it).second = START_PUBLISH;
+			    //click_chatter("LocalProxy: IDs[i] is: %s\n", IDs[i].quoted_hex().c_str());
                             sendNotificationLocally(START_PUBLISH, (*publishers_it).first, IDs[i]);
                             shouldBreak = true;
                             break;
@@ -491,7 +493,23 @@ void LocalProxy::handleRVNotification(Packet *p) {
                 }
             }
             break;
+        case UPDATE_BA:
+        {
+            // Resiliency
+            BABitvector up_RVFID;
+            BABitvector up_TMFID;
+            up_RVFID = BABitvector(FID_LEN * 8);
+            up_TMFID = BABitvector(FID_LEN * 8);
+            memcpy(up_RVFID._data, p->data() + sizeof (type), FID_LEN);
+            memcpy(up_TMFID._data, p->data() + sizeof (type) + FID_LEN, FID_LEN);
+            gc->defaultRV_dl = up_RVFID;
+            gc->TMFID = up_TMFID;
+            //click_chatter("LocalProxy: gc->DefaultRV :%s \n\n", gc->defaultRV_dl.to_string().c_str());
+            //click_chatter("LocalProxy: UPDATE TMFID  :%s \n", gc->TMFID.to_string().c_str());
+            break;
+        }
         case STOP_PUBLISH:
+        {
             for (int i = 0; i < (int) numberOfIDs; i++) {
                 ap = activePublicationIndex.get(IDs[i]);
                 if (ap != activePublicationIndex.default_value()) {
@@ -508,9 +526,12 @@ void LocalProxy::handleRVNotification(Packet *p) {
                 }
             }
             break;
+        }
         default:
+        {
             click_chatter("LocalProxy: FATAL - didn't understand the RV notification");
             break;
+        }
     }
 }
 

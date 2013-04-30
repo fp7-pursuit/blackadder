@@ -4,7 +4,7 @@
 MAKE=gmake
 
 CXX=g++
-CXXFLAGS=-I/usr/local/include -I/opt/local/include
+CXXFLAGS=-I../lib/qos -I/usr/local/include -I/opt/local/include
 LDFLAGS=-L/usr/local/lib -L/opt/local/lib
 
 .MAIN: all

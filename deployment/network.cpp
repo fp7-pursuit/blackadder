@@ -204,7 +204,8 @@ void Domain::discoverMacAddresses(bool no_remote) {
         for (size_t j = 0; j < nn->connections.size(); j++) {
             NetworkConnection *nc = nn->connections[j];
             if (overlay_mode.compare("mac") == 0
-                || overlay_mode.compare("mac_ml") == 0) {
+                || overlay_mode.compare("mac_ml") == 0
+                || overlay_mode.compare("mac_qos") == 0) {
                 if (overlay_mode.compare("mac_ml") == 0
                     && (nn->type != "PN" || nc->src_if == "")) {
                     continue;
@@ -490,13 +491,17 @@ int findOffset(vector<string> &unique, string &str) {
     return -1;
 }
 
-void Domain::writeClickFiles(bool montoolstub) {
+void Domain::writeClickFiles(bool montoolstub, bool dump_supp) {
     ofstream click_conf;
+    ofstream write_TMFID;
     for (size_t i = 0; i < network_nodes.size(); i++) {
         vector<string> unique_ifaces;
         vector<string> unique_srcips;
+        // Map Interface to ports for QoS (e.g.: eth0: 1,2)
+        IfPortsMap ifmap;
         NetworkNode *nn = network_nodes[i];
         click_conf.open((write_conf + nn->label + ".conf").c_str());
+        write_TMFID.open((write_conf+ nn->label +"_TMFID.txt").c_str());
         if (montoolstub && (nn->running_mode.compare("user") == 0)) {
             click_conf << "require(blackadder); \n\nControlSocket(\"TCP\",55000);\n\n " << endl << endl;
         } else {
@@ -506,6 +511,7 @@ void Domain::writeClickFiles(bool montoolstub) {
         click_conf << "globalconf::GlobalConf(MODE " << overlay_mode << ", NODEID " << nn->label << "," << endl;
         click_conf << "DEFAULTRV " << nn->FID_to_RV.to_string() << "," << endl;
         click_conf << "TMFID     " << nn->FID_to_TM.to_string() << "," << endl;
+        write_TMFID << nn->FID_to_TM.to_string()<<endl;
         click_conf << "iLID      " << nn->iLid.to_string() << ");" << endl << endl;
 
         click_conf << "localRV::LocalRV(globalconf);" << endl;
@@ -522,12 +528,26 @@ void Domain::writeClickFiles(bool montoolstub) {
                     && nc->lnk_type != "pp") {
                     nc->dst_mac = "00:00:00:00:00:00";
                 }
+                
+                // Default MAC behaviour
                 if ((offset = findOffset(unique_ifaces, nc->src_if)) == -1) {
                     unique_ifaces.push_back(nc->src_if);
                     click_conf << unique_ifaces.size() << "," << nc->src_mac << "," << nc->dst_mac << "," << nc->LID.to_string();
                 } else {
                     click_conf << offset + 1 << "," << nc->src_mac << "," << nc->dst_mac << "," << nc->LID.to_string();
                 }
+                
+                // Do not ignore duplicates and use a new port!
+            } else if (overlay_mode.compare("mac_qos") == 0) {         
+                // Add the interface either way! (Do not count uniques)
+                // Add to the map
+                IfMapE tmp_ime;
+                tmp_ime.fwport = j+1;
+                tmp_ime.prio = nc->priority;
+                tmp_ime.rate_lim = nc->rate_lim;
+                ifmap[nc->src_if].push_back(tmp_ime);
+                // Config...
+                click_conf << j + 1 << "," << nc->src_mac << "," << nc->dst_mac << "," << nc->LID.to_string();
             } else {
                 if ((offset = findOffset(unique_srcips, nc->src_ip)) == -1) {
                     unique_srcips.push_back(nc->src_ip);
@@ -554,6 +574,47 @@ void Domain::writeClickFiles(bool montoolstub) {
                 }
             }
             /*Necessary Click Elements*/
+        } else if (overlay_mode.compare("mac_qos") == 0) {
+            // write down the map + the scheduler
+            
+            // For each interface (PHY in theory)
+            IfPortsMap::iterator it = ifmap.begin();
+            // Build priority list for the LinkMon module
+            stringstream priolist;
+            for (; it!=ifmap.end(); ++it){
+                // For each port on the FW module (and device)
+                for (size_t i = 0; i < it->second.size(); i++){
+                    // Add a counter (incoming rate / demand)
+                    click_conf << "inC_" << it->first<<"_"<<i+1<<"::Counter();"<<endl;
+                    // Add the Q in the middle 
+                    click_conf << "tsQ_" << it->first<<"_"<<i+1<<"::ThreadSafeQueue(1000);"<<endl;
+                    // Add the outgoing counter (outgoing rate / utilization)
+                    click_conf << "outC_" << it->first<<"_"<<i+1<<"::Counter();"<<endl;
+                    
+                    // Add the outgoing (ofcource) rate limiter!
+                    click_conf << "BS_" << it->first<<"_"<<i+1<<"::BandwidthShaper("<<it->second[i].rate_lim<<");"<<endl;
+                    
+                    priolist<<it->second[i].prio<<",";
+                    //if (i<it->second.size()-1) priolist<<",";
+                }
+                
+                // Add the sceduler for this device!
+                click_conf << "sc_"<<it->first <<"::SimplePrioSched();"<<endl;
+                
+                // Add the classifier for this device!
+                click_conf << endl << "cf_" << it->first  << "::Classifier(12/080a);" << endl;
+                
+                // Finally add the device (unique cause it is a map)
+                if (nn->running_mode.compare("user") == 0)
+                    click_conf << "fromdev_" << it->first << "::FromDevice(" << it->first << ");" << endl << "todev_" << it->first << "::ToDevice(" << it->first << ");" << endl;
+                else 
+                    click_conf << "fromdev_" << it->first << "::FromDevice(" << it->first << ", BURST 8);" << endl << "todev_" << it->first << "::ToDevice(" << it->first << ", BURST 8);" << endl;
+            } // Eo Interfaces
+            
+            // Add the monitoring element
+            // TODO: Pass the intervals as parameters to avoid recompiling
+            // Terminate the priolist with a dummy -1 (to avoid removing comma :) sry...)
+            click_conf << "lnmon::LinkMon(globalconf,fw, 1, 10,"<<priolist.str()<<"-1);" << endl;
         } else {
             /*raw sockets here*/
             click_conf << "tsf" << "::ThreadSafeQueue(1000);" << endl;
@@ -590,6 +651,30 @@ void Domain::writeClickFiles(bool montoolstub) {
                     }
                 }
             }
+        } else if (overlay_mode.compare("mac_qos") == 0) {
+            
+            // For each interface 
+            IfPortsMap::iterator it = ifmap.begin();
+            int it_count = 1; // :) 
+            for (; it!=ifmap.end(); ++it){
+                // For each port on the FW module (and device)
+                for (size_t i = 0; i < it->second.size(); i++) {
+                    stringstream ss;
+                    //ss << it->first << "_" << (it->second[i].fwport);
+                    ss << it->first << "_" << (i+1);
+                    string ifpname = ss.str();
+                    // Connect the fw->inC->Q->BS->outC->scheduler!
+                    click_conf << "fw["<<it->second[i].fwport<<"] -> inC_" << ifpname << " -> "<< " tsQ_" << ifpname <<
+			" -> BS_" << it->first<<"_"<<((i+1)/* *it_count*/)<<" -> outC_" << ifpname << " -> ["<<i<<"]sc_"<<it->first<<";"<<endl;
+                }
+                
+                // Finally connect scheduler<->Interface
+                click_conf << "sc_"<<it->first << " -> " << "todev_"<< it->first << ";" << endl;
+                click_conf << "fromdev_"<< it->first << " -> cf_" << it->first << "[0] ->inc_"<< it->first <<"::Counter()  -> [" << (it_count++) << "]fw;" << endl;
+            } // Eo Interfaces
+            
+            // Connect the link monitoring module
+            click_conf << "lnmon[0]->[3]proxy[3]->[0]lnmon;" << endl;
         } else {
             /*raw sockets here*/
             if (montoolstub) {
@@ -598,7 +683,11 @@ void Domain::writeClickFiles(bool montoolstub) {
                 click_conf << "fw[1] ->  tsf -> rawsocket -> IPClassifier(dst udp port 55555 and src udp port 55555)[0] -> [1]fw" << endl;
             }
         }
+        if (dump_supp && nn->isRV && nn->running_mode.compare("user") == 0) {
+            click_conf << "\ncs :: ControlSocket(TCP, 55500);" << endl;
+        }
         click_conf.close();
+        write_TMFID.close();
     }
 }
 
@@ -661,7 +750,7 @@ void Domain::scpTMConfiguration(string TM_conf) {
 
 void Domain::scpClickFiles() {
     FILE *scp_command;
-    string command;
+    string command, fidtm_cmd;
     for (size_t i = 0; i < network_nodes.size(); i++) {
         NetworkNode *nn = network_nodes[i];
         if (overlay_mode.compare("mac_ml") == 0 && nn->type.compare("PN") != 0) {
@@ -669,10 +758,17 @@ void Domain::scpClickFiles() {
             continue;
         }
         command = "scp " + write_conf + nn->label + ".conf" + " " + user + "@" + nn->testbed_ip + ":" + write_conf;
+        fidtm_cmd= "scp " + write_conf + nn->label + "_TMFID.txt" + " " + user + "@" + nn->testbed_ip + ":" + write_conf;
         cout << command << endl;
         scp_command = popen(command.c_str(), "r");
         if (scp_command == NULL) {
             cerr << "Failed to scp click file to node " << nn->label << endl;
+        }
+        pclose(scp_command);
+        cout << fidtm_cmd << endl;
+        scp_command = popen(fidtm_cmd.c_str(), "r");
+        if (scp_command == NULL) {
+            cerr << "Failed to scp TMFID file to node " << nn->label << endl;
         }
         /* close */
         pclose(scp_command);

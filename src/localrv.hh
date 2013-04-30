@@ -67,6 +67,9 @@ public:
      * @return the correct number so that it is configured afterwards
      */
     int configure_phase() const {return 201;}
+    /**@brief Click: Install the element's handlers.
+     */
+    void add_handlers();
     /**
      * @brief This method is called by Click when the Element is about to be initialized. 
      * Upon initialization, LocalRV subscribes to scope /FFFFFFFFFFFFFFFF to receive pub/sub requests from all Blackadder nodes. It uses the IMPLICIT_RENDEZVOUS strategy. 
@@ -418,6 +421,8 @@ public:
      * @param IDs the set of identifiers identifying the Scope.
      */
     void requestTMAssistanceForNotifyingSubscribers(unsigned char request_type, StringSet &IDs, RemoteHostSet &_subscribers, unsigned char strategy);
+    /**@brief Lists all idenfifiers of all scopes and information items. */
+    String listInfoStructs();
     /**@brief A pointer to the GlobalConf Element so that LocalProxy can access the node's Global Configuration.
      */
     GlobalConf *gc;

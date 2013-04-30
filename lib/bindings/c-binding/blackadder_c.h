@@ -120,4 +120,14 @@ void ba_event_type(ba_event ev, unsigned char **type);
 void ba_event_id(ba_event ev, const char **id, unsigned int *id_len);
 void ba_event_data(ba_event ev, void **data, unsigned int **data_len);
 
+/*
+ * Helper functions.
+ */
+const char* chararray_to_hex(const char *str);
+const char* hex_to_chararray(const char *str);
+
+unsigned long long ba_fnv1_64(const unsigned char *data, unsigned int n);
+unsigned long long ba_fnv1a_64(const unsigned char *data, unsigned int n);
+char *ba_fnv_chars(unsigned long long *hash);
+
 #endif /* BLACKADDER_H */

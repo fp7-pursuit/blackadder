@@ -25,8 +25,8 @@ def _main(argv=[]):
     ba = Blackadder.Instance(True)
     
     sid0 = ""
-    sid  = '\x0a'+6*'\x00'+'\x0b'
-    rid  = '\x0c'+6*'\x00'+'\x0d'
+    sid  = '\x0a'+(PURSUIT_ID_LEN-2)*'\x00'+'\x0b'
+    rid  = '\x0c'+(PURSUIT_ID_LEN-2)*'\x00'+'\x0d'
     
     ba.publish_scope(sid, sid0, strategy, None)
     ba.publish_info(rid, sid, strategy, None)

@@ -173,5 +173,33 @@ String InformationItem::printID(unsigned int index) {
     }
 }
 
+/*Print all IDs in ids HashTable as Strings*/
+String InformationItem::printIDs(char delim) {
+    String toReturn;
+    const char hex_digits[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+    int i = 0;
+    StringAccum sa;
+    int fragments;
+    char *buf;
+    for (IdsHashMapIter it = ids.begin(); it; it++) {
+        String ID = (*it).first;
+        fragments = ID.length() / PURSUIT_ID_LEN;
+        buf = sa.extend(ID.length() * 2 + fragments + 2);
+        *buf++ = '/';
+        const uint8_t *e = reinterpret_cast<const uint8_t*> (ID.end());
+        for (const uint8_t *x = reinterpret_cast<const uint8_t*> (ID.begin()); x < e; x++) {
+            *buf++ = hex_digits[(*x >> 4) & 0xF];
+            *buf++ = hex_digits[*x & 0xF];
+            i++;
+            if (i % PURSUIT_ID_LEN * 2 == 0) {
+                *buf++ = '/';
+            }
+        }
+        *buf++ = delim;
+    }
+    toReturn = sa.take_string();
+    return toReturn;
+}
+
 CLICK_ENDDECLS
 ELEMENT_PROVIDES(InformationItem)

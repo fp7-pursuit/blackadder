@@ -65,11 +65,13 @@ void *event_listener_loop(void *arg) {
                 cout << "counter: " << counter << endl;
                 cout << "payload_size: " << payload_size << endl;
                 float throughput = (left / right);
-                printf("Throughput: %f MB/sec \n\n", throughput);
+                printf("Throughput: %f MB/sec \n", throughput);
+                float pps = ((float) counter) / right;
+                printf("%f pps\n\n", pps);
                 break;
             }
         } else {
-            cout << "weird" << endl;
+            printf("w"); /*Short for weird*/
         }
     }
     return NULL;
@@ -97,7 +99,7 @@ int main(int argc, char* argv[]) {
         ba = Blackadder::Instance(true);
     }
     cout << "Process ID: " << getpid() << endl;
-    string id = "1111111111111111";
+    string id = string(PURSUIT_ID_LEN*2, '1'); // "1111111111111111"
     string prefix_id = string();
     string bin_id = hex_to_chararray(id);
     string bin_prefix_id = hex_to_chararray(prefix_id);

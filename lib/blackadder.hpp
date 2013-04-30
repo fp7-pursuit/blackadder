@@ -51,6 +51,7 @@
 #include <iostream>
 
 #include "blackadder_defs.h"
+#include "ba_fnv.hpp"
 
 
 using namespace std;
@@ -69,6 +70,13 @@ string hex_to_chararray(const string &hexstr);
  * @return the converted string
  */
 string chararray_to_hex(const string &str);
+/**relates Blackaddder
+ * @brief splits a string, according to the provided delimiter, into a vector of integers. e.g. string= 1/2/3 , delim_char='/' , --> vector =[1 2 3]
+ * @param input_str input string
+ * @param delim_char delimiting character 
+ * @return vector of integers
+ */
+vector<int> split_int_string(string &input_str, char delim_char);
 
 class Event;
 

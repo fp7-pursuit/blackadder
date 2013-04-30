@@ -81,4 +81,8 @@ void nb_ba_worker(nb_ba_handle ba, void *arg);
 void nb_ba_signal_handler(nb_ba_handle ba, int sig);
 void nb_ba_join(nb_ba_handle ba);
 
+unsigned long long nb_ba_fnv1_64(const unsigned char *data, unsigned int n);
+unsigned long long nb_ba_fnv1a_64(const unsigned char *data, unsigned int n);
+char *nb_ba_fnv_chars(unsigned long long *hash);
+
 #endif /* NB_BLACKADDER_H */

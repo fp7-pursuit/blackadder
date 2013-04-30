@@ -37,7 +37,7 @@ build_triplet = @build@
 host_triplet = @host@
 subdir = .
 DIST_COMMON = README $(am__configure_deps) $(include_HEADERS) \
-	$(srcdir)/Makefile.am $(srcdir)/Makefile.in \
+	$(qos_HEADERS) $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 	$(srcdir)/config.h.in $(top_srcdir)/configure AUTHORS COPYING \
 	ChangeLog INSTALL NEWS config/compile config/config.guess \
 	config/config.sub config/depcomp config/install-sh \
@@ -77,14 +77,19 @@ am__nobase_list = $(am__nobase_strip_setup); \
 am__base_list = \
   sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
   sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
-am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(includedir)"
+am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(includedir)" \
+	"$(DESTDIR)$(qosdir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
 libblackadder_la_LIBADD =
 am__objects_1 = libblackadder_la-blackadder.lo \
 	libblackadder_la-nb_blackadder.lo \
 	libblackadder_la-bitvector.lo
 am__objects_2 = $(am__objects_1)
-am_libblackadder_la_OBJECTS = $(am__objects_2)
+am__objects_3 = libblackadder_la-bytearray.lo \
+	libblackadder_la-lsmpacket.lo \
+	libblackadder_la-metadatapacket.lo
+am__objects_4 = $(am__objects_3)
+am_libblackadder_la_OBJECTS = $(am__objects_2) $(am__objects_4)
 libblackadder_la_OBJECTS = $(am_libblackadder_la_OBJECTS)
 libblackadder_la_LINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CXXLD) \
@@ -112,7 +117,7 @@ RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
 	install-pdf-recursive install-ps-recursive install-recursive \
 	installcheck-recursive installdirs-recursive pdf-recursive \
 	ps-recursive uninstall-recursive
-HEADERS = $(include_HEADERS)
+HEADERS = $(include_HEADERS) $(qos_HEADERS)
 RECURSIVE_CLEAN_TARGETS = mostlyclean-recursive clean-recursive	\
   distclean-recursive maintainer-clean-recursive
 AM_RECURSIVE_TARGETS = $(RECURSIVE_TARGETS:-recursive=) \
@@ -299,12 +304,23 @@ NAMES = blackadder nb_blackadder bitvector
 HDRS = $(NAMES:=.hpp)
 SRCS = $(NAMES:=.cpp)
 
+# -------- QoS inclusion --------------
+# local dir
+qd = qos
+# system include dir
+qosdir = $(includedir)/$(qd)
+qos_HEADERS = $(QHDRS)
+QNAMES = $(qd)/bytearray $(qd)/lsmpacket $(qd)/metadatapacket
+QSRCS = $(QNAMES:=.cpp) 
+QHDRS = $(QNAMES:=.hpp) $(qd)/qos_structs.hpp
+# -------- Eo QoS part ----------------
+
 #DEBUGFLAGS = -ggdb
 lib_LTLIBRARIES = libblackadder.la
-libblackadder_la_SOURCES = $(SRCS)
+libblackadder_la_SOURCES = $(SRCS) $(QSRCS)
 libblackadder_la_CXXFLAGS = $(DEBUGFLAGS)
 libblackadder_la_LDFLAGS = -version-info $(MAJOR):$(MINOR)
-include_HEADERS = $(HDRS) blackadder_defs.h
+include_HEADERS = $(HDRS) blackadder_defs.h ba_fnv.hpp
 ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = . swig bindings
 all: config.h
@@ -405,6 +421,9 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libblackadder_la-bitvector.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libblackadder_la-blackadder.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libblackadder_la-bytearray.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libblackadder_la-lsmpacket.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libblackadder_la-metadatapacket.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libblackadder_la-nb_blackadder.Plo@am__quote@
 
 .cpp.o:
@@ -449,6 +468,27 @@ libblackadder_la-bitvector.lo: bitvector.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libblackadder_la_CXXFLAGS) $(CXXFLAGS) -c -o libblackadder_la-bitvector.lo `test -f 'bitvector.cpp' || echo '$(srcdir)/'`bitvector.cpp
 
+libblackadder_la-bytearray.lo: $(qd)/bytearray.cpp
+@am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libblackadder_la_CXXFLAGS) $(CXXFLAGS) -MT libblackadder_la-bytearray.lo -MD -MP -MF $(DEPDIR)/libblackadder_la-bytearray.Tpo -c -o libblackadder_la-bytearray.lo `test -f '$(qd)/bytearray.cpp' || echo '$(srcdir)/'`$(qd)/bytearray.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libblackadder_la-bytearray.Tpo $(DEPDIR)/libblackadder_la-bytearray.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='$(qd)/bytearray.cpp' object='libblackadder_la-bytearray.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libblackadder_la_CXXFLAGS) $(CXXFLAGS) -c -o libblackadder_la-bytearray.lo `test -f '$(qd)/bytearray.cpp' || echo '$(srcdir)/'`$(qd)/bytearray.cpp
+
+libblackadder_la-lsmpacket.lo: $(qd)/lsmpacket.cpp
+@am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libblackadder_la_CXXFLAGS) $(CXXFLAGS) -MT libblackadder_la-lsmpacket.lo -MD -MP -MF $(DEPDIR)/libblackadder_la-lsmpacket.Tpo -c -o libblackadder_la-lsmpacket.lo `test -f '$(qd)/lsmpacket.cpp' || echo '$(srcdir)/'`$(qd)/lsmpacket.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libblackadder_la-lsmpacket.Tpo $(DEPDIR)/libblackadder_la-lsmpacket.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='$(qd)/lsmpacket.cpp' object='libblackadder_la-lsmpacket.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libblackadder_la_CXXFLAGS) $(CXXFLAGS) -c -o libblackadder_la-lsmpacket.lo `test -f '$(qd)/lsmpacket.cpp' || echo '$(srcdir)/'`$(qd)/lsmpacket.cpp
+
+libblackadder_la-metadatapacket.lo: $(qd)/metadatapacket.cpp
+@am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libblackadder_la_CXXFLAGS) $(CXXFLAGS) -MT libblackadder_la-metadatapacket.lo -MD -MP -MF $(DEPDIR)/libblackadder_la-metadatapacket.Tpo -c -o libblackadder_la-metadatapacket.lo `test -f '$(qd)/metadatapacket.cpp' || echo '$(srcdir)/'`$(qd)/metadatapacket.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libblackadder_la-metadatapacket.Tpo $(DEPDIR)/libblackadder_la-metadatapacket.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='$(qd)/metadatapacket.cpp' object='libblackadder_la-metadatapacket.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libblackadder_la_CXXFLAGS) $(CXXFLAGS) -c -o libblackadder_la-metadatapacket.lo `test -f '$(qd)/metadatapacket.cpp' || echo '$(srcdir)/'`$(qd)/metadatapacket.cpp
+
 mostlyclean-libtool:
 	-rm -f *.lo
 
@@ -477,6 +517,26 @@ uninstall-includeHEADERS:
 	test -n "$$files" || exit 0; \
 	echo " ( cd '$(DESTDIR)$(includedir)' && rm -f" $$files ")"; \
 	cd "$(DESTDIR)$(includedir)" && rm -f $$files
+install-qosHEADERS: $(qos_HEADERS)
+	@$(NORMAL_INSTALL)
+	test -z "$(qosdir)" || $(MKDIR_P) "$(DESTDIR)$(qosdir)"
+	@list='$(qos_HEADERS)'; test -n "$(qosdir)" || list=; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_HEADER) $$files '$(DESTDIR)$(qosdir)'"; \
+	  $(INSTALL_HEADER) $$files "$(DESTDIR)$(qosdir)" || exit $$?; \
+	done
+
+uninstall-qosHEADERS:
+	@$(NORMAL_UNINSTALL)
+	@list='$(qos_HEADERS)'; test -n "$(qosdir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	test -n "$$files" || exit 0; \
+	echo " ( cd '$(DESTDIR)$(qosdir)' && rm -f" $$files ")"; \
+	cd "$(DESTDIR)$(qosdir)" && rm -f $$files
 
 # This directory's subdirectories are mostly independent; you can cd
 # into them and run `make' without going through this Makefile.
@@ -733,7 +793,7 @@ distcheck: dist
 	*.zip*) \
 	  unzip $(distdir).zip ;;\
 	esac
-	chmod -R a-w $(distdir); chmod a+w $(distdir)
+	chmod -R a-w $(distdir); chmod u+w $(distdir)
 	mkdir $(distdir)/_build
 	mkdir $(distdir)/_inst
 	chmod a-w $(distdir)
@@ -793,7 +853,7 @@ check: check-recursive
 all-am: Makefile $(LTLIBRARIES) $(HEADERS) config.h
 installdirs: installdirs-recursive
 installdirs-am:
-	for dir in "$(DESTDIR)$(libdir)" "$(DESTDIR)$(includedir)"; do \
+	for dir in "$(DESTDIR)$(libdir)" "$(DESTDIR)$(includedir)" "$(DESTDIR)$(qosdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-recursive
@@ -845,7 +905,7 @@ info: info-recursive
 
 info-am:
 
-install-data-am: install-includeHEADERS
+install-data-am: install-includeHEADERS install-qosHEADERS
 
 install-dvi: install-dvi-recursive
 
@@ -894,7 +954,8 @@ ps: ps-recursive
 
 ps-am:
 
-uninstall-am: uninstall-includeHEADERS uninstall-libLTLIBRARIES
+uninstall-am: uninstall-includeHEADERS uninstall-libLTLIBRARIES \
+	uninstall-qosHEADERS
 	@$(NORMAL_INSTALL)
 	$(MAKE) $(AM_MAKEFLAGS) uninstall-hook
 .MAKE: $(RECURSIVE_CLEAN_TARGETS) $(RECURSIVE_TARGETS) all \
@@ -913,16 +974,17 @@ uninstall-am: uninstall-includeHEADERS uninstall-libLTLIBRARIES
 	install-exec install-exec-am install-exec-hook install-html \
 	install-html-am install-includeHEADERS install-info \
 	install-info-am install-libLTLIBRARIES install-man install-pdf \
-	install-pdf-am install-ps install-ps-am install-strip \
-	installcheck installcheck-am installdirs installdirs-am \
-	maintainer-clean maintainer-clean-generic mostlyclean \
-	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
-	pdf pdf-am ps ps-am tags tags-recursive uninstall uninstall-am \
-	uninstall-hook uninstall-includeHEADERS \
-	uninstall-libLTLIBRARIES
+	install-pdf-am install-ps install-ps-am install-qosHEADERS \
+	install-strip installcheck installcheck-am installdirs \
+	installdirs-am maintainer-clean maintainer-clean-generic \
+	mostlyclean mostlyclean-compile mostlyclean-generic \
+	mostlyclean-libtool pdf pdf-am ps ps-am tags tags-recursive \
+	uninstall uninstall-am uninstall-hook uninstall-includeHEADERS \
+	uninstall-libLTLIBRARIES uninstall-qosHEADERS
 
 
 # XXX: Remove old libblackadder.a in install and uninstall hooks
+#      (Some old versions were installed in /usr/lib and /usr/include)
 
 install-exec-hook:
 	test "$(libdir)" != "/usr/lib" -a -e /usr/lib/libblackadder.a && rm -fv /usr/lib/libblackadder.a || true # XXX
@@ -936,6 +998,13 @@ uninstall-hook:
 	test "$(includedir)" != "/usr/include" -a -e /usr/include/blackadder.hpp && rm -fv /usr/include/blackadder.hpp || true # XXX
 	test "$(includedir)" != "/usr/include" -a -e /usr/include/nb_blackadder.hpp && rm -fv /usr/include/nb_blackadder.hpp || true # XXX
 	test "$(includedir)" != "/usr/include" -a -e /usr/include/bitvector.hpp && rm -fv /usr/include/bitvector.hpp || true # XXX
+
+# Debug .am for QoS
+# all-local:
+# 	@echo
+# 	@echo 'Qos Sources: $(QSRCS)'
+# 	@echo 'Qos Headers: $(QHDRS)'
+# 	@echo
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

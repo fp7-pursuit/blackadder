@@ -1,0 +1,70 @@
+rvinfo - Rendezvous Information Visualization Tool
+==================================================
+
+Files
+-----
+
+rvinfo      Shell script for querying RV info and updating an SVG image.
+            Runs `rvinfo.py' and `dot' periodically. Requires `graphviz'.
+
+rvinfo.html Web page that contains the SVG image. Refreshes periodically.
+
+rvinfo.py   Python application for querying RV info and creating a graph.
+            Reads RV info in JSON format from an RV element. Writes a DOT file.
+            Requires `python-igraph' or `py-igraph' (and also `json').
+            If needed, modify host, port, handler name, ID table, etc.
+
+Usage
+-----
+
+- In the local RV node, from where you want to read RV information,
+  either add a line with "cs :: ControlSocket(TCP, 55500);" to the
+  Click configuration file, or start Click with "-p 55000", or run the
+  deployment tool with "--rvinfo". (In the kernel, the RV information
+  can be read from a file instead.)
+
+- Make sure your visualization host can connect to the control socket
+  on the RV node. You can either run it on the same host, or then you
+  can create e.g. an SSH tunnel to the RV node, directly or via
+  another host.
+
+- On the visualization node, run the `rvinfo' script. Also open
+  `rvinfo.html' in a web browser. The information graph should get
+  updated every few seconds (~2 s by default).
+
+Example
+-------
+
+On intra-domain RV node (with no ControlSocket in Click configuration file):
+
+pursuit@rv:~$ click -p 55500 conf.click
+
+On visualization host (different host than RV node):
+
+user@host:~$ ssh pursuit@rv -L55500:localhost:55500
+# or: ssh pursuit@gw -L55500:rv:55500
+
+user@host:~/rvinfo$ ./rvinfo
+user@host:~/rvinfo$ open rvinfo.html
+
+Requirements
+------------
+
+Python 2.6/2.7, igraph Python module (see below), Graphviz, Bash, web browser.
+
+Installing igraph Python module in Ubuntu:
+sudo apt-get install python-software-properties
+sudo add-apt-repository ppa:igraph/ppa
+sudo apt-get update
+sudo apt-get install python-igraph
+
+Installing igraph Python module via MacPorts:
+sudo port install py-igraph
+
+More information about igraph Python module:
+http://igraph.sourceforge.net/download.html
+
+License
+-------
+
+See LICENSE and COPYING files.

@@ -1,0 +1,15 @@
+Module.symvers
+autom4te.cache
+Makefile
+config.log
+config.status
+*.ud
+*.uo
+*.kd
+*.ko
+*.ko.cmd
+*.o.cmd
+?elements.conf
+?elements.mk
+?package.cc
+elementmap-*.xml

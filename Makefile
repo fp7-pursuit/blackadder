@@ -11,6 +11,10 @@ all: subdirs
 
 subdirs: $(SUBDIRS)
 
+base: $(SUBDIRS1)
+
+apps: $(SUBDIRS2)
+
 $(SUBDIRS):
 	$(MAKE) -C $@
 
@@ -40,4 +44,4 @@ configure:: $(addsuffix -configure,$(SUBDIRS1))
 	cd $*; ./configure $(CONFIGFLAGS); cd ..
 
 install-deps:
-	apt-get `cat apt-get.txt`
+	apt-get install `cat apt-get.txt`
