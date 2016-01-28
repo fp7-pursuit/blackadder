@@ -53,7 +53,8 @@ namespace ns3 {
         PubSubApplication::StartApplication();
         /*read the graphML file that describes the topology*/
         NS_LOG_INFO("FILENAME: " << m_filename);
-        NS_ASSERT_MSG(m_tm_igraph.readTopology(m_filename.c_str()) >= 0, "TM: couldn't read topology file...aborting");
+        int res = m_tm_igraph.readTopology(m_filename.c_str());
+        NS_ASSERT_MSG(res >= 0, "TM: couldn't read topology file...aborting");
         NS_LOG_INFO("Blackadder Node: " << m_tm_igraph.nodeID);
         /***************************************************/
         /*I should write a read hander that reads the Node Identifier (and other useful information)*/
