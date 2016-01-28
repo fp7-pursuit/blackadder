@@ -40,7 +40,7 @@ namespace ns3 {
          */
         void EventHandler(Ptr<Event> ev);
     protected:
-        void DoStart(void);
+        void DoInitialize(void);
         virtual void DoDispose(void);
     private:
         /**@brief When the publisher is started, it advertises root scope 00000000000 and schedules (at 0 seconds) an NS3 event. 

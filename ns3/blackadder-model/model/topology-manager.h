@@ -49,7 +49,7 @@ namespace ns3 {
     protected:
         /**@brief Creates a callback function that will be called when a new event is pushed from Blackadder.
          */
-        void DoStart(void);
+        void DoInitialize(void);
         virtual void DoDispose(void);
     private:
         /**@brief When the Topology Manager is started, the topology file is read and a subscription with IMPLICIT_RENDEZVOUSstrategy is sent to blackadder so that topology requests can be later received.

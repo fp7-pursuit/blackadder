@@ -37,10 +37,10 @@ namespace ns3 {
     TopologyManager::~TopologyManager() {
     }
 
-    void TopologyManager::DoStart(void) {
+    void TopologyManager::DoInitialize(void) {
         NS_LOG_FUNCTION(this);
         m_cb = MakeCallback(&TopologyManager::EventHandler, this);
-        PubSubApplication::DoStart();
+        PubSubApplication::DoInitialize();
     }
 
     void TopologyManager::DoDispose(void) {

@@ -143,7 +143,7 @@ namespace ns3 {
          * The Click node (basically Blackadder) is initialized.
          * Some housekeeping is also done so that NS3 can keep track of the active click nodes in the simulation.
          */
-        void DoStart(void);
+        void DoInitialize(void);
         /**@brief The click node is destroyed.
          * 
          */

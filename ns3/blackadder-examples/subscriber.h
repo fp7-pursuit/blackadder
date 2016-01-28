@@ -40,7 +40,7 @@ namespace ns3 {
          */
         void EventHandler(Ptr<Event> ev);
     protected:
-        void DoStart(void);
+        void DoInitialize(void);
         virtual void DoDispose(void);
     private:
         virtual void StartApplication(void);

@@ -33,10 +33,10 @@ namespace ns3 {
     Publisher::~Publisher() {
     }
 
-    void Publisher::DoStart(void) {
+    void Publisher::DoInitialize(void) {
         NS_LOG_FUNCTION(this);
         m_cb = MakeCallback(&Publisher::EventHandler, this);
-        PubSubApplication::DoStart();
+        PubSubApplication::DoInitialize();
     }
 
     void Publisher::DoDispose(void) {
