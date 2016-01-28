@@ -66,7 +66,7 @@ namespace ns3 {
          */
         void EventHandler(Ptr<Event> ev);
     protected:
-        void DoStart(void);
+        void DoInitialize(void);
         void DoDispose(void);
         /**@brief Called by the simulator when the time has come for the NS3 application to start. It gets a reference of the ServiceModel Class and registers the application with the ServiceModel.
          * The process identifier is acquired and used with all service model calls.

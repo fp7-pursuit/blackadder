@@ -33,7 +33,7 @@ namespace ns3 {
     ServiceModel::~ServiceModel() {
     }
 
-    void ServiceModel::DoStart(void) {
+    void ServiceModel::DoInitialize(void) {
         NS_LOG_FUNCTION(this);
         Ptr<ClickBridge> click_bridge = GetObject<Node > ()->GetObject<ClickBridge > ();
         click_bridge->SetUpcall(ns3::MakeCallback(&ns3::ServiceModel::ClickUpcall, this));

@@ -104,7 +104,7 @@ namespace ns3 {
          * @param pid the process identifier of the application to be unregistered by the ServiceModel.
          */
         void UnregisterApplication(uint32_t pid);
-        /**@A callback that is registered with the ClickBridge (see DoStart) and is called whenever a Blackadder Event needs to be routed to an NS3 application.
+        /**@A callback that is registered with the ClickBridge (see DoInitialize) and is called whenever a Blackadder Event needs to be routed to an NS3 application.
          * 
          * @param ifid
          * @param data the data received by Blackadder (from which an Event will be constructed)
@@ -175,7 +175,7 @@ namespace ns3 {
         /**
          * @brief It is called when the simulated object is started. It registers a callback to ClickBridge to receive all events, that must be routed to NS3 applications, by Blackadder.
          */
-        void DoStart(void);
+        void DoInitialize(void);
         void DoDispose(void);
         /**
          * @brief The same call is in Blackadder's library. The only difference is the process identifier which must be explicitly passed as an argument

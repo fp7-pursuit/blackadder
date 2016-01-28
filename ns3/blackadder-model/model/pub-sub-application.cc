@@ -34,9 +34,9 @@ namespace ns3 {
     PubSubApplication::~PubSubApplication() {
     }
 
-    void PubSubApplication::DoStart(void) {
+    void PubSubApplication::DoInitialize(void) {
         NS_LOG_FUNCTION(this);
-        Application::DoStart();
+        Application::DoInitialize();
     }
 
     void PubSubApplication::DoDispose() {

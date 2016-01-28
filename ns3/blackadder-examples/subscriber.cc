@@ -33,10 +33,10 @@ namespace ns3 {
     Subscriber::~Subscriber() {
     }
 
-    void Subscriber::DoStart(void) {
+    void Subscriber::DoInitialize(void) {
         NS_LOG_FUNCTION(this);
         m_cb = MakeCallback(&Subscriber::EventHandler, this);
-        PubSubApplication::DoStart();
+        PubSubApplication::DoInitialize();
     }
 
     void Subscriber::DoDispose(void) {
