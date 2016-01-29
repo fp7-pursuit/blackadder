@@ -8,7 +8,7 @@ INCLUDES += -I/usr/local/include
 
 placonf_SOURCES = ec_io.c gnb.c ec.c ec_hw.c placonf.c
 placonf_CFLAGS = $(INCLUDES)
-placonf_LDFLAGS = -lpla -L.
+placonf_LDFLAGS = -lpla -lcrypto -L.
 
 gen_cert_SOURCES = 
 gen_cert:
