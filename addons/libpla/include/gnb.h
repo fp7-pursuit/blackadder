@@ -28,8 +28,8 @@
 #define DEGREE 163                           /* exponent of the underlying field's size  */
 #define MARGIN ((W - (DEGREE % W)) % W)      /* number of unused bits on the right */
 #define NUMWORDS ((DEGREE + MARGIN) / W)     /* number of computer words of a field element */
-#define T 4                                  /* type of the curve */
-#define P (T * DEGREE + 1)                   /* P value for the curve */
+#define CURVE_TYPE 4                         /* type of the curve */
+#define P (CURVE_TYPE * DEGREE + 1)          /* P value for the curve */
 
 /* jlu XXX: These blow up on a 64-bit architecture. */
 #if 0
