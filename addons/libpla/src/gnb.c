@@ -333,12 +333,12 @@ int gnb_compute_order(int32_t g)
 int gnb_get_u()
 {
   int32_t g, k;
-  k = T +1;
-  while(k % T) {
+  k = CURVE_TYPE +1;
+  while(k % CURVE_TYPE) {
     g = rand_int(P - 2) + 2;
     k = gnb_compute_order(g);
   }
-  return gnb_modpow(g,k/T,P);
+  return gnb_modpow(g,k/CURVE_TYPE,P);
 }
 
 /**
@@ -361,7 +361,7 @@ void gnb_init()
   /* compute f's (P1363, A.3.7 p. 93) */
   u = gnb_get_u();
   w = 1;
-  for(j=0; j < T; j++) {
+  for(j=0; j < CURVE_TYPE; j++) {
     n = w;
     for(i=0; i < DEGREE; i++) {
       F[n] = i;
@@ -380,8 +380,8 @@ void gnb_init()
   for(i=0; i<DEGREE; i++) {
     M[i] = (int32_t*) malloc(DEGREE*sizeof(int32_t));
     memset(M[i],0,DEGREE * sizeof(int32_t));
-    R[i] = (int32_t*) malloc((T+1)*sizeof(int32_t));
-    memset(R[i],0,(T+1) * sizeof(int32_t));
+    R[i] = (int32_t*) malloc((CURVE_TYPE+1)*sizeof(int32_t));
+    memset(R[i],0,(CURVE_TYPE+1) * sizeof(int32_t));
   }
 
 
